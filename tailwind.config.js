@@ -7,6 +7,9 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+      colors: {
+        'dark-bg': '#1C1B1F',
+      },
       fontFamily: {
         sans: ['Poppins_400Regular', 'system-ui', 'sans-serif'],
         thin: ['Poppins_100Thin'],

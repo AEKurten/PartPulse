@@ -1,9 +1,10 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { preventAutoHideAsync, hideAsync } from 'expo-splash-screen';
+import { Stack } from 'expo-router';
+import { hideAsync, preventAutoHideAsync } from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../global.css';
@@ -54,25 +55,27 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="sell" options={{ headerShown: true, title: 'Sell Item' }} />
-          <Stack.Screen name="buy-item" options={{ headerShown: true, title: 'Product Details' }} />
-          <Stack.Screen name="checkout" options={{ headerShown: true, title: 'Checkout' }} />
-          <Stack.Screen name="order-status" options={{ headerShown: true, title: 'Order Status' }} />
-          <Stack.Screen name="ai-tools" options={{ headerShown: true, title: 'AI Tools' }} />
-          <Stack.Screen name="ai-builder-results" options={{ headerShown: true, title: 'Build Results' }} />
-          <Stack.Screen name="seller-profile" options={{ headerShown: true, title: 'Seller Profile' }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+    <SafeAreaProvider >
+      <View className="flex-1 bg-white dark:bg-dark-bg">
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="welcome" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="sell" options={{ headerShown: true, title: 'Sell Item' }} />
+            <Stack.Screen name="buy-item" options={{ headerShown: true, title: 'Product Details' }} />
+            <Stack.Screen name="checkout" options={{ headerShown: true, title: 'Checkout' }} />
+            <Stack.Screen name="order-status" options={{ headerShown: true, title: 'Order Status' }} />
+            <Stack.Screen name="ai-tools" options={{ headerShown: true, title: 'AI Tools' }} />
+            <Stack.Screen name="ai-builder-results" options={{ headerShown: true, title: 'Build Results' }} />
+            <Stack.Screen name="seller-profile" options={{ headerShown: true, title: 'Seller Profile' }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </View>
     </SafeAreaProvider>
   );
 }

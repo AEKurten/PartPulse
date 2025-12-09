@@ -1,8 +1,8 @@
 import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import LottieView from "lottie-react-native";
 import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
@@ -14,8 +14,11 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WelcomeScreen() {
+  const insets = useSafeAreaInsets();
+
   // Title animations
   const titleOpacity = useSharedValue(0);
   const titleTranslateY = useSharedValue(30);
@@ -103,58 +106,46 @@ export default function WelcomeScreen() {
   }));
 
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }}>
       <StatusBar style="light" />
-      <View className="flex-1 absolute bg-black z-10" />
-      {/* Background gradient effects */}
-      <View className="absolute inset-0">
-        <View className="absolute top-0 left-0 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
-        <View className="absolute top-1/3 right-0 w-80 h-80 bg-pink-600/20 rounded-full blur-3xl" />
-        <View className="absolute bottom-1/4 left-1/4 w-72 h-72 bg-red-600/15 rounded-full blur-3xl" />
-      </View>
-
       {/* Full screen overlay with blur and black opacity */}
       <View className="absolute inset-0 z-20">
         <BlurView
-          intensity={80}
+          intensity={100}
           tint="dark"
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         />
         <View className="absolute inset-0 bg-black/60" />
       </View>
 
-      <View className="flex-1 justify-between px-6 pt-16 pb-12 z-30">
+      <View className="flex-1 px-6 pt-16 pb-12 z-30">
         {/* App Name */}
         <Animated.View
           style={titleAnimatedStyle}
           className="items-center mt-12"
         >
-          <Text className="text-5xl font-bold text-white tracking-tight">
+          <Text className="text-5xl font-bold text-white tracking-tight p-2">
             PartPulse
           </Text>
         </Animated.View>
 
-        {/* GPU Image with Animation */}
+        {/* GPU Lottie Animation */}
         <Animated.View
           style={imageAnimatedStyle}
-          className="flex-1 items-center justify-center"
+          className="items-center"
         >
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop&q=80",
-            }}
-            contentFit="contain"
-            transition={300}
-            className="w-64 h-64"
-            placeholder={{ blurhash: "LGF5]+Yk^6#M@-5c,1J5@[or[Q6." }}
-            // For local GIF: source={require('@/assets/images/gpu-animation.gif')}
+          <LottieView
+            source={require("@/assets/animations/Video Graphic card (GPU).json")}
+            autoPlay
+            loop
+            style={{ width: 256, height: 256 }}
           />
         </Animated.View>
 
         {/* Tagline */}
-        <Animated.View style={taglineAnimatedStyle} className="mb-8">
-          <Text className="text-2xl font-semibold text-white leading-tight">
-            Stop Guessing.{"\n"}Start Selling.
+        <Animated.View style={taglineAnimatedStyle} className="mb-8 flex-1">
+          <Text className="text-3xl font-semibold text-white opacity-95 leading-tight text-center">
+            Stop Guessing.Start {"\n"}Selling.
           </Text>
         </Animated.View>
 
@@ -167,9 +158,13 @@ export default function WelcomeScreen() {
                   colors={["#EC4899", "#F97316"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  className={`rounded-2xl py-5 px-8 ${
-                    pressed ? "opacity-80" : "opacity-100"
-                  }`}
+                  style={{
+                    borderRadius: 16,
+                    height: 56,
+                    opacity: pressed ? 0.8 : 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
                 >
                   <Text className="text-white text-lg font-bold text-center">
                     Get Started
