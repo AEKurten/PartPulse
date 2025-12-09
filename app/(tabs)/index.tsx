@@ -1,8 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingProductCard } from '@/components/trending-product-card';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

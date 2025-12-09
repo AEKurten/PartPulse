@@ -87,8 +87,7 @@ export default function ChatsScreen() {
           <Pressable
             key={conversation.id}
             onPress={() => {
-              // Navigate to chat detail
-              console.log('Open chat:', conversation.id);
+              router.push(`/chat?id=${conversation.id}`);
             }}
           >
             {({ pressed }) => (
