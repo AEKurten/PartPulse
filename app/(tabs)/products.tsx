@@ -3,6 +3,7 @@ import { FloatingActionButton } from '@/components/floating-action-button';
 import { ProductCard } from '@/components/product-card';
 import { SearchWithFilters } from '@/components/search-with-filters';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -78,6 +79,33 @@ export default function ProductsScreen() {
           paddingBottom: 16,
         }}
       >
+        {/* Header */}
+        <View style={{ marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#EC4899' + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Ionicons name="grid-outline" size={24} color="#EC4899" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                All Products
+              </Text>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                Browse our complete catalog
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Search Bar with Filters Button */}
         <View style={{ marginBottom: 16 }}>
           <SearchWithFilters

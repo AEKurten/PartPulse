@@ -96,9 +96,29 @@ export default function ProfileScreen() {
       >
         {/* Header */}
         <View style={{ paddingTop: 24, marginBottom: 32 }}>
-          <Text style={{ color: textColor, fontSize: 24, fontWeight: 'bold' }}>
-            Profile
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#EC4899' + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Ionicons name="person" size={24} color="#EC4899" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                Profile
+              </Text>
+              <Text style={{ color: secondaryTextColor, fontSize: 14 }}>
+                Manage your account and preferences
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* User Profile Card */}
@@ -110,6 +130,8 @@ export default function ProfileScreen() {
             marginBottom: 24,
             flexDirection: 'row',
             alignItems: 'center',
+            borderWidth: 1,
+            borderColor: borderColor,
           }}
         >
           <View

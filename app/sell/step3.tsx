@@ -94,12 +94,29 @@ export default function SellStep3Screen() {
               >
                 <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
               </Pressable>
-              <Text className="text-3xl font-bold text-white mb-2">
-                AI Analysis Complete
-              </Text>
-              <Text className="text-base text-neutral-400">
-                Review the AI's assessment of your item
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: '#EC4899' + '20',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <Ionicons name="sparkles" size={24} color="#EC4899" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                    AI Analysis Complete
+                  </Text>
+                  <Text style={{ color: '#D1D5DB', fontSize: 14 }}>
+                    Review the AI's assessment of your item
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {/* AI Grade Card */}

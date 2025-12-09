@@ -3,11 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useState, useRef } from 'react';
-import { Modal, PanResponder, Pressable, ScrollView, Text, View, Dimensions } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, Easing } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useRef, useState } from 'react';
+import { Dimensions, Modal, PanResponder, Pressable, Animated as RNAnimated, ScrollView, Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -85,7 +85,8 @@ export default function OrderStatusScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const [showTrackingSheet, setShowTrackingSheet] = useState(false);
-  const trackingTranslateY = useRef(new Animated.Value(0)).current;
+  const trackingTranslateY = useRef(new RNAnimated.Value(0)).current;
+  const trackingScrollViewRef = useRef<ScrollView>(null);
 
   // Animation values for drone
   const translateY = useSharedValue(0);
@@ -126,6 +127,23 @@ export default function OrderStatusScreen() {
   useEffect(() => {
     if (showTrackingSheet) {
       trackingTranslateY.setValue(0);
+      
+      // Find the active step index
+      const activeStepIndex = trackingSteps.findIndex(step => !step.completed);
+      const targetIndex = activeStepIndex === -1 ? trackingSteps.length - 1 : activeStepIndex;
+      
+      // Calculate scroll position (each step is approximately 100px tall with gap)
+      // Scroll to show the active step in the middle of the viewport
+      const stepHeight = 100; // Approximate height per step including gap
+      const scrollPosition = Math.max(0, (targetIndex * stepHeight) - 150); // Offset to center it
+      
+      // Scroll to the active step after a short delay to ensure the sheet is rendered
+      setTimeout(() => {
+        trackingScrollViewRef.current?.scrollTo({
+          y: scrollPosition,
+          animated: true,
+        });
+      }, 100);
     }
   }, [showTrackingSheet]);
 
@@ -143,7 +161,7 @@ export default function OrderStatusScreen() {
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 150) {
-          Animated.timing(trackingTranslateY, {
+          RNAnimated.timing(trackingTranslateY, {
             toValue: 500,
             duration: 200,
             useNativeDriver: true,
@@ -152,7 +170,7 @@ export default function OrderStatusScreen() {
             setShowTrackingSheet(false);
           });
         } else {
-          Animated.spring(trackingTranslateY, {
+          RNAnimated.spring(trackingTranslateY, {
             toValue: 0,
             useNativeDriver: true,
           }).start();
@@ -451,7 +469,7 @@ export default function OrderStatusScreen() {
             setShowTrackingSheet(false);
           }}
         >
-          <Animated.View
+          <RNAnimated.View
             style={{
               backgroundColor: colors.cardBackground,
               borderTopLeftRadius: 24,
@@ -494,14 +512,18 @@ export default function OrderStatusScreen() {
             </View>
 
             {/* Tracking Steps */}
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              ref={trackingScrollViewRef}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 80 }}
+            >
               <View style={{ gap: 20 }}>
                 {trackingSteps.map((step, index) => {
                   const isLast = index === trackingSteps.length - 1;
                   const isActive = step.completed || (!step.completed && index === trackingSteps.findIndex(s => !s.completed));
 
                   return (
-                    <View key={step.id} style={{ flexDirection: 'row' }}>
+                    <View key={step.id} style={{ flexDirection: 'row', marginBottom: isLast ? 0 : 0 }}>
                       {/* Timeline Line & Icon */}
                       <View style={{ alignItems: 'center', marginRight: 16 }}>
                         <View
@@ -526,8 +548,7 @@ export default function OrderStatusScreen() {
                           <View
                             style={{
                               width: 2,
-                              flex: 1,
-                              minHeight: 60,
+                              height: 40,
                               backgroundColor: step.completed ? '#10B981' : colors.borderColor,
                               marginTop: 8,
                             }}
@@ -588,7 +609,7 @@ export default function OrderStatusScreen() {
                 })}
               </View>
             </ScrollView>
-          </Animated.View>
+          </RNAnimated.View>
         </Pressable>
       </Modal>
     </View>

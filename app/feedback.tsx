@@ -65,25 +65,43 @@ export default function FeedbackScreen() {
         {/* Header */}
         <View
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
             paddingHorizontal: Math.max(insets.left, 24),
             paddingRight: Math.max(insets.right, 24),
-            paddingTop: 16,
-            paddingBottom: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: borderColor,
+            paddingTop: 24,
+            paddingBottom: 24,
           }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            style={{ marginRight: 16 }}
-          >
-            <Ionicons name="arrow-back" size={24} color={textColor} />
-          </Pressable>
-          <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold', flex: 1 }}>
-            Send Feedback
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <Pressable
+              onPress={() => router.back()}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={textColor} />
+            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: '#EC4899' + '20',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 12,
+                }}
+              >
+                <Ionicons name="chatbubble-ellipses" size={24} color="#EC4899" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                  Send Feedback
+                </Text>
+                <Text style={{ color: secondaryTextColor, fontSize: 14 }}>
+                  Help us improve PartPulse
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
         <ScrollView

@@ -97,25 +97,43 @@ export default function CheckoutScreen() {
       {/* Header */}
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
           paddingLeft: Math.max(insets.left, 24),
           paddingRight: Math.max(insets.right, 24),
-          paddingTop: 16,
-          paddingBottom: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.borderColor,
+          paddingTop: 24,
+          paddingBottom: 24,
         }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={{ marginRight: 16 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.textColor} />
-        </Pressable>
-        <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600', flex: 1 }}>
-          Checkout
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <Pressable
+            onPress={() => router.back()}
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textColor} />
+          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#EC4899' + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Ionicons name="cart" size={24} color="#EC4899" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                Checkout
+              </Text>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                Review your order and payment
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -272,8 +290,8 @@ export default function CheckoutScreen() {
                       backgroundColor: colors.cardBackground,
                       borderRadius: 16,
                       padding: 20,
-                      borderWidth: 2,
-                      borderColor: selectedPayment === method.id ? '#EC4899' : 'transparent',
+                      borderWidth: selectedPayment === method.id ? 2 : 1,
+                      borderColor: selectedPayment === method.id ? '#EC4899' : colors.borderColor,
                       opacity: pressed ? 0.8 : 1,
                     }}
                   >

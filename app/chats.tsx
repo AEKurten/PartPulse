@@ -60,22 +60,40 @@ export default function ChatsScreen() {
           paddingLeft: Math.max(insets.left, 24),
           paddingRight: Math.max(insets.right, 24),
           paddingTop: 24,
-          paddingBottom: 16,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          paddingBottom: 24,
         }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={{ alignSelf: 'flex-start' }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.textColor} />
-        </Pressable>
-        <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
-          Messages
-        </Text>
-        <View style={{ width: 24 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <Pressable
+            onPress={() => router.back()}
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textColor} />
+          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#EC4899' + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Ionicons name="chatbubbles" size={24} color="#EC4899" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                Messages
+              </Text>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                Your conversations
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* Conversations List */}

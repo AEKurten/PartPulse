@@ -51,7 +51,7 @@ export default function HomeScreen() {
         }}
       >
         {/* Welcome Message with Chats Button */}
-        <View style={{ paddingTop: 24, marginBottom: 20 }}>
+        <View style={{ paddingTop: 24, marginBottom: 32 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -60,22 +60,41 @@ export default function HomeScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
-                {greeting}, {USERNAME}
-              </Text>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 16, marginTop: 4 }}>
-                Welcome back
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: '#EC4899' + '20',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <Ionicons name="home" size={24} color="#EC4899" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                    {greeting}, {USERNAME}
+                  </Text>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                    Welcome back to PartPulse
+                  </Text>
+                </View>
+              </View>
             </View>
             <Pressable
               onPress={() => router.push('/chats')}
               style={{
                 backgroundColor: colors.cardBackground,
-                borderRadius: 12,
-                width: 48,
-                height: 48,
+                borderRadius: 16,
+                width: 56,
+                height: 56,
                 justifyContent: 'center',
                 alignItems: 'center',
+                borderWidth: 1,
+                borderColor: colors.borderColor,
               }}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.textColor} />

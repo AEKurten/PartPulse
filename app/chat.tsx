@@ -190,54 +190,66 @@ export default function ChatScreen() {
             backgroundColor: colors.backgroundColor,
             paddingLeft: Math.max(insets.left, 24),
             paddingRight: Math.max(insets.right, 24),
-            paddingTop: 16,
-            paddingBottom: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
+            paddingTop: 24,
+            paddingBottom: 24,
             borderBottomWidth: 1,
             borderBottomColor: colors.borderColor,
           }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            style={{ marginRight: 16 }}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.textColor} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <Pressable
+              onPress={() => router.back()}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.textColor} />
+            </Pressable>
 
-          {/* Seller Avatar - Clickable */}
-          <Pressable
-            onPress={() => router.push('/seller-profile')}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              overflow: 'hidden',
-              marginRight: 12,
-              backgroundColor: colors.iconBackground,
-            }}
-          >
-            <Image
-              source={{ uri: conversation.sellerAvatar }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="cover"
-            />
-          </Pressable>
+            {/* Seller Avatar - Clickable */}
+            <Pressable
+              onPress={() => router.push('/seller-profile')}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                overflow: 'hidden',
+                marginRight: 12,
+                backgroundColor: colors.iconBackground,
+                borderWidth: 2,
+                borderColor: '#EC4899' + '40',
+              }}
+            >
+              <Image
+                source={{ uri: conversation.sellerAvatar }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
+            </Pressable>
 
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
-              {conversation.sellerName}
-            </Text>
-            <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-              Active now
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 2 }}>
+                {conversation.sellerName}
+              </Text>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
+                Active now
+              </Text>
+            </View>
+
+            <Pressable
+              onPress={() => setShowMenu(true)}
+              style={{
+                backgroundColor: colors.cardBackground,
+                borderRadius: 12,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: colors.borderColor,
+              }}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color={colors.textColor} />
+            </Pressable>
           </View>
-
-          <Pressable
-            onPress={() => setShowMenu(true)}
-          >
-            <Ionicons name="ellipsis-vertical" size={24} color={colors.textColor} />
-          </Pressable>
         </View>
 
         {/* Product Info Card */}

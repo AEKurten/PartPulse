@@ -242,12 +242,14 @@ export default function BuyItemScreen() {
             <View
               style={{
                 backgroundColor: colors.cardBackground,
-                borderRadius: 12,
+                borderRadius: 16,
                 padding: 16,
                 marginBottom: 16,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 12,
+                borderWidth: 1,
+                borderColor: colors.borderColor,
               }}
             >
               <View
@@ -325,13 +327,15 @@ export default function BuyItemScreen() {
           <Pressable
             onPress={() => router.push('/seller-profile')}
             style={{
-              backgroundColor: '#2B2E36',
-              borderRadius: 12,
+              backgroundColor: colors.cardBackground,
+              borderRadius: 16,
               padding: 16,
               marginBottom: 24,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
+              borderWidth: 1,
+              borderColor: colors.borderColor,
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
@@ -382,8 +386,10 @@ export default function BuyItemScreen() {
             <View
               style={{
                 backgroundColor: colors.cardBackground,
-                borderRadius: 12,
+                borderRadius: 16,
                 overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: colors.borderColor,
               }}
             >
               {productData.specifications.map((spec, index) => (
@@ -411,10 +417,12 @@ export default function BuyItemScreen() {
           {/* Listing Info */}
           <View
             style={{
-              backgroundColor: '#2B2E36',
-              borderRadius: 12,
+              backgroundColor: colors.cardBackground,
+              borderRadius: 16,
               padding: 16,
               marginBottom: 24,
+              borderWidth: 1,
+              borderColor: colors.borderColor,
             }}
           >
             <View

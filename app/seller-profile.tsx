@@ -131,28 +131,60 @@ export default function SellerProfileScreen() {
       {/* Header */}
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
           paddingLeft: Math.max(insets.left, 24),
           paddingRight: Math.max(insets.right, 24),
-          paddingTop: 16,
-          paddingBottom: 16,
+          paddingTop: 24,
+          paddingBottom: 24,
           borderBottomWidth: 1,
           borderBottomColor: colors.borderColor,
         }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={{ marginRight: 16 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.textColor} />
-        </Pressable>
-        <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600', flex: 1 }}>
-          Seller Profile
-        </Text>
-        <Pressable onPress={() => setShowMenu(true)}>
-          <Ionicons name="ellipsis-horizontal" size={24} color={colors.textColor} />
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <Pressable
+            onPress={() => router.back()}
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textColor} />
+          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#EC4899' + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 12,
+              }}
+            >
+              <Ionicons name="person-circle" size={24} color="#EC4899" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                Seller Profile
+              </Text>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                View seller information and listings
+              </Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => setShowMenu(true)}
+            style={{
+              backgroundColor: colors.cardBackground,
+              borderRadius: 12,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: colors.borderColor,
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textColor} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -243,10 +275,12 @@ export default function SellerProfileScreen() {
           <View
             style={{
               backgroundColor: colors.cardBackground,
-              borderRadius: 12,
+              borderRadius: 16,
               padding: 12,
               flexDirection: 'row',
               alignItems: 'center',
+              borderWidth: 1,
+              borderColor: colors.borderColor,
             }}
           >
             <Ionicons name="time-outline" size={20} color={colors.secondaryTextColor} />
@@ -263,6 +297,8 @@ export default function SellerProfileScreen() {
             borderRadius: 16,
             padding: 20,
             marginBottom: 24,
+            borderWidth: 1,
+            borderColor: colors.borderColor,
           }}
         >
           <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
@@ -387,9 +423,11 @@ export default function SellerProfileScreen() {
                 key={review.id}
                 style={{
                   backgroundColor: colors.cardBackground,
-                  borderRadius: 12,
+                  borderRadius: 16,
                   padding: 16,
                   marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: colors.borderColor,
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
