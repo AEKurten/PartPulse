@@ -1,7 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ProductCard } from '@/components/product-card';
+import { SearchBar } from '@/components/search-bar';
+import { SectionHeader } from '@/components/section-header';
+import { TrendingProductCard } from '@/components/trending-product-card';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Hardcoded username for now
@@ -16,14 +17,13 @@ const recommendedProducts = [
 ];
 
 const trendingProducts = [
-  { id: 5, name: 'RTX 4080 Super', price: '$999', condition: 'Excellent', image: '🎮', rating: 4.8 },
-  { id: 6, name: 'Intel i9-14900K', price: '$579', condition: 'Like New', image: '💻', rating: 4.9 },
-  { id: 7, name: 'ASUS ROG Motherboard', price: '$349', condition: 'Excellent', image: '🔌', rating: 4.7 },
+  { id: 5, name: 'NVIDIA GeForce RTX 4080 Super', price: '$999', condition: 'Excellent', image: '🎮', rating: 4.8, sellerName: 'TechGuru', aiCertified: true },
+  { id: 6, name: 'Intel i9-14900K', price: '$579', condition: 'Like New', image: '💻', rating: 4.9, sellerName: 'PCBuilder Pro', aiCertified: true },
+  { id: 7, name: 'ASUS ROG Motherboard', price: '$349', condition: 'Excellent', image: '🔌', rating: 4.7, sellerName: 'Hardware Haven', aiCertified: false },
 ];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
 
@@ -56,158 +56,39 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <View style={{ marginBottom: 32 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: '#2B2E36',
-              borderRadius: 999,
-              paddingHorizontal: 20,
-              paddingVertical: 14,
-            }}
-          >
-            <TextInput
-              placeholder="Search for parts..."
-              placeholderTextColor="#9CA3AF"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={{
-                flex: 1,
-                fontSize: 16,
-                color: '#FFFFFF',
-              }}
-            />
-            <Ionicons name="search" size={24} color="#D62F76" />
-
-          </View>
+          <SearchBar />
         </View>
 
         {/* Recommended Items Section */}
         <View style={{ marginBottom: 32 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16,
-            }}
-          >
-            <Text className="text-xl font-bold text-white">Recommended for You</Text>
-            <Pressable>
-              <Text className="text-[#EC4899]">Show all</Text>
-            </Pressable>
-          </View>
-
+          <SectionHeader
+            title="Recommended for You"
+            onShowAllPress={() => console.log('Show all recommended')}
+          />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingRight: 24 }}
           >
-            {recommendedProducts.map((product, index) => (
-              <View
-                key={product.id}
-                style={{
-                  width: 180,
-                  marginRight: 16,
-                  backgroundColor: '#2B2E36',
-                  borderRadius: 16,
-                  padding: 16,
-                }}
-              >
-                <View
-                  style={{
-                    width: '100%',
-                    height: 120,
-                    backgroundColor: '#1A1C22',
-                    borderRadius: 12,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: 12,
-                  }}
-                >
-                  <Text style={{ fontSize: 48 }}>{product.image}</Text>
-                </View>
-                <Text
-                  className="text-white font-semibold text-base mb-1"
-                  numberOfLines={1}
-                >
-                  {product.name}
-                </Text>
-                <Text className="text-neutral-400 text-sm mb-2">{product.condition}</Text>
-                <Text className="text-[#EC4899] font-bold text-lg">{product.price}</Text>
-              </View>
+            {recommendedProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
             ))}
           </ScrollView>
         </View>
 
         {/* Trending Products Section */}
         <View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text className="text-xl font-bold text-white">Trending Products</Text>
-            <Pressable>
-              <Text className="text-[#EC4899]">Show all</Text>
-            </Pressable>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: 24 }}
-          >
+          <SectionHeader
+            title="Trending Products"
+            onShowAllPress={() => console.log('Show all trending')}
+          />
+          <View>
             {trendingProducts.map((product) => (
-              <Link key={product.id} href="/buy-item" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <View
-                      style={{
-                        width: 320,
-                        marginRight: 16,
-                        backgroundColor: '#2B2E36',
-                        borderRadius: 16,
-                        padding: 16,
-                        flexDirection: 'row',
-                        opacity: pressed ? 0.8 : 1,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 100,
-                          height: 100,
-                          backgroundColor: '#1A1C22',
-                          borderRadius: 12,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          marginRight: 16,
-                        }}
-                      >
-                        <Text style={{ fontSize: 40 }}>{product.image}</Text>
-                      </View>
-                      <View style={{ flex: 1, justifyContent: 'space-between' }}>
-                        <View>
-                          <Text className="text-white font-semibold text-base mb-1">
-                            {product.name}
-                          </Text>
-                          <Text className="text-neutral-400 text-sm mb-2">
-                            {product.condition}
-                          </Text>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              marginBottom: 8,
-                            }}
-                          >
-                            <Ionicons name="star" size={14} color="#FBBF24" />
-                            <Text className="text-white text-sm ml-1">{product.rating}</Text>
-                          </View>
-                        </View>
-                        <Text className="text-[#EC4899] font-bold text-lg">{product.price}</Text>
-                      </View>
-                    </View>
-                  )}
-                </Pressable>
-              </Link>
+              <View key={product.id} style={{ marginBottom: 16 }}>
+                <TrendingProductCard {...product} />
+              </View>
             ))}
-          </ScrollView>
+          </View>
         </View>
       </ScrollView>
     </View>
