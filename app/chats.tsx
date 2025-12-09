@@ -3,6 +3,8 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { StatusBar } from 'expo-status-bar';
 
 // Mock chat conversations
 const conversations = [
@@ -40,16 +42,18 @@ const conversations = [
 
 export default function ChatsScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: '#0F0E11',
+        backgroundColor: colors.backgroundColor,
         paddingTop: insets.top,
         paddingBottom: insets.bottom,
       }}
     >
+      <StatusBar style={colors.statusBarStyle} />
       {/* Header */}
       <View
         style={{
@@ -66,9 +70,9 @@ export default function ChatsScreen() {
           onPress={() => router.back()}
           style={{ alignSelf: 'flex-start' }}
         >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={24} color={colors.textColor} />
         </Pressable>
-        <Text className="text-2xl font-bold text-white">
+        <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
           Messages
         </Text>
         <View style={{ width: 24 }} />
@@ -93,7 +97,7 @@ export default function ChatsScreen() {
             {({ pressed }) => (
               <View
                 style={{
-                  backgroundColor: '#2B2E36',
+                  backgroundColor: colors.cardBackground,
                   borderRadius: 16,
                   padding: 16,
                   marginBottom: 12,
@@ -109,7 +113,7 @@ export default function ChatsScreen() {
                     borderRadius: 28,
                     overflow: 'hidden',
                     marginRight: 12,
-                    backgroundColor: '#1F2937',
+                    backgroundColor: colors.iconBackground,
                   }}
                 >
                   <Image
@@ -129,10 +133,10 @@ export default function ChatsScreen() {
                       marginBottom: 4,
                     }}
                   >
-                    <Text className="text-white text-base font-semibold" numberOfLines={1}>
+                    <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }} numberOfLines={1}>
                       {conversation.sellerName}
                     </Text>
-                    <Text className="text-neutral-400 text-xs">
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
                       {conversation.timestamp}
                     </Text>
                   </View>
@@ -152,7 +156,7 @@ export default function ChatsScreen() {
                         height: 32,
                         borderRadius: 8,
                         overflow: 'hidden',
-                        backgroundColor: '#1F2937',
+                        backgroundColor: colors.iconBackground,
                       }}
                     >
                       <Image
@@ -161,7 +165,7 @@ export default function ChatsScreen() {
                         contentFit="cover"
                       />
                     </View>
-                    <Text className="text-neutral-400 text-xs flex-1" numberOfLines={1}>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 12, flex: 1 }} numberOfLines={1}>
                       {conversation.productName}
                     </Text>
                   </View>
@@ -169,9 +173,13 @@ export default function ChatsScreen() {
                   {/* Last Message */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text
-                      className={`text-sm ${conversation.unreadCount > 0 ? 'text-white font-semibold' : 'text-neutral-400'}`}
+                      style={{ 
+                        color: conversation.unreadCount > 0 ? colors.textColor : colors.secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: conversation.unreadCount > 0 ? '600' : '400',
+                        flex: 1
+                      }}
                       numberOfLines={1}
-                      style={{ flex: 1 }}
                     >
                       {conversation.lastMessage}
                     </Text>

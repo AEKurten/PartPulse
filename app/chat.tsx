@@ -4,6 +4,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { StatusBar } from 'expo-status-bar';
 
 // Mock conversation data (in real app, this would come from route params or API)
 const getConversationData = (id: string) => {
@@ -99,6 +101,7 @@ const getConversationData = (id: string) => {
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const params = useLocalSearchParams<{ id?: string }>();
   const conversationId = params.id || '1';
   const conversation = getConversationData(conversationId);
@@ -176,14 +179,15 @@ export default function ChatScreen() {
       <View
         style={{
           flex: 1,
-          backgroundColor: '#0F0E11',
+          backgroundColor: colors.backgroundColor,
           paddingTop: insets.top,
         }}
       >
+        <StatusBar style={colors.statusBarStyle} />
         {/* Header */}
         <View
           style={{
-            backgroundColor: '#0F0E11',
+            backgroundColor: colors.backgroundColor,
             paddingLeft: Math.max(insets.left, 24),
             paddingRight: Math.max(insets.right, 24),
             paddingTop: 16,
@@ -191,14 +195,14 @@ export default function ChatScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             borderBottomWidth: 1,
-            borderBottomColor: '#1F2937',
+            borderBottomColor: colors.borderColor,
           }}
         >
           <Pressable
             onPress={() => router.back()}
             style={{ marginRight: 16 }}
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color={colors.textColor} />
           </Pressable>
 
           {/* Seller Avatar - Clickable */}
@@ -210,7 +214,7 @@ export default function ChatScreen() {
               borderRadius: 20,
               overflow: 'hidden',
               marginRight: 12,
-              backgroundColor: '#1F2937',
+              backgroundColor: colors.iconBackground,
             }}
           >
             <Image
@@ -221,10 +225,10 @@ export default function ChatScreen() {
           </Pressable>
 
           <View style={{ flex: 1 }}>
-            <Text className="text-white text-base font-semibold">
+            <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
               {conversation.sellerName}
             </Text>
-            <Text className="text-neutral-400 text-xs">
+            <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
               Active now
             </Text>
           </View>
@@ -232,7 +236,7 @@ export default function ChatScreen() {
           <Pressable
             onPress={() => setShowMenu(true)}
           >
-            <Ionicons name="ellipsis-vertical" size={24} color="#FFFFFF" />
+            <Ionicons name="ellipsis-vertical" size={24} color={colors.textColor} />
           </Pressable>
         </View>
 
@@ -243,7 +247,7 @@ export default function ChatScreen() {
             console.log('View product');
           }}
           style={{
-            backgroundColor: '#2B2E36',
+            backgroundColor: colors.cardBackground,
             marginHorizontal: Math.max(insets.left, 24),
             marginRight: Math.max(insets.right, 24),
             marginTop: 12,
@@ -261,7 +265,7 @@ export default function ChatScreen() {
               borderRadius: 8,
               overflow: 'hidden',
               marginRight: 12,
-              backgroundColor: '#1F2937',
+              backgroundColor: colors.iconBackground,
             }}
           >
             <Image
@@ -271,14 +275,14 @@ export default function ChatScreen() {
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text className="text-white text-sm font-semibold" numberOfLines={1}>
+            <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
               {conversation.productName}
             </Text>
             <Text style={{ color: '#EC4899', fontSize: 16, fontWeight: 'bold', marginTop: 4 }}>
               {conversation.productPrice}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={20} color={colors.secondaryTextColor} />
         </Pressable>
 
         {/* Messages */}
@@ -305,7 +309,7 @@ export default function ChatScreen() {
               <View
                 style={{
                   maxWidth: '75%',
-                  backgroundColor: msg.sender === 'user' ? '#EC4899' : '#2B2E36',
+                  backgroundColor: msg.sender === 'user' ? '#EC4899' : colors.cardBackground,
                   borderRadius: 16,
                   paddingHorizontal: 16,
                   paddingVertical: 10,
@@ -313,12 +317,16 @@ export default function ChatScreen() {
                   borderTopRightRadius: msg.sender === 'user' ? 4 : 16,
                 }}
               >
-                <Text className="text-white text-sm" style={{ lineHeight: 20 }}>
+                <Text style={{ color: msg.sender === 'user' ? '#FFFFFF' : colors.textColor, fontSize: 14, lineHeight: 20 }}>
                   {msg.text}
                 </Text>
                 <Text
-                  className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-pink-100' : 'text-neutral-400'}`}
-                  style={{ textAlign: 'right' }}
+                  style={{ 
+                    color: msg.sender === 'user' ? 'rgba(255, 255, 255, 0.8)' : colors.secondaryTextColor,
+                    fontSize: 12,
+                    marginTop: 4,
+                    textAlign: 'right'
+                  }}
                 >
                   {formatTime(msg.timestamp)}
                 </Text>
@@ -330,9 +338,9 @@ export default function ChatScreen() {
         {/* Message Input */}
         <View
           style={{
-            backgroundColor: '#0F0E11',
+            backgroundColor: colors.backgroundColor,
             borderTopWidth: 1,
-            borderTopColor: '#1F2937',
+            borderTopColor: colors.borderColor,
             paddingLeft: Math.max(insets.left, 24),
             paddingRight: Math.max(insets.right, 24),
             paddingTop: 12,
@@ -350,18 +358,18 @@ export default function ChatScreen() {
             <View style={{ flex: 1 }}>
               <TextInput
                 placeholder="Type a message..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.secondaryTextColor}
                 value={message}
                 onChangeText={setMessage}
                 multiline
                 maxLength={500}
                 style={{
-                  backgroundColor: '#2B2E36',
+                  backgroundColor: colors.cardBackground,
                   borderRadius: 24,
                   paddingHorizontal: 20,
                   paddingVertical: 12,
                   fontSize: 14,
-                  color: '#FFFFFF',
+                  color: colors.textColor,
                   minHeight: 48,
                   maxHeight: 100,
                   textAlignVertical: 'center',
@@ -377,7 +385,7 @@ export default function ChatScreen() {
                 width: 48,
                 height: 48,
                 borderRadius: 24,
-                backgroundColor: message.trim() ? '#EC4899' : '#2B2E36',
+                backgroundColor: message.trim() ? '#EC4899' : colors.cardBackground,
                 justifyContent: 'center',
                 alignItems: 'center',
                 opacity: !message.trim() ? 0.5 : 1,
@@ -386,7 +394,7 @@ export default function ChatScreen() {
               <Ionicons
                 name="send"
                 size={20}
-                color={message.trim() ? '#FFFFFF' : '#9CA3AF'}
+                color={message.trim() ? '#FFFFFF' : colors.secondaryTextColor}
               />
             </Pressable>
           </View>
@@ -405,7 +413,7 @@ export default function ChatScreen() {
           <Pressable
             style={{
               flex: 1,
-              backgroundColor: 'rgba(15, 14, 17, 0.8)',
+              backgroundColor: colors.backgroundColor + 'CC',
               justifyContent: 'flex-end',
             }}
             onPress={() => {
@@ -415,7 +423,7 @@ export default function ChatScreen() {
           >
             <Animated.View
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
                 paddingTop: 12,
@@ -436,7 +444,7 @@ export default function ChatScreen() {
                 style={{
                   width: 40,
                   height: 4,
-                  backgroundColor: '#9CA3AF',
+                  backgroundColor: colors.secondaryTextColor,
                   borderRadius: 2,
                   alignSelf: 'center',
                   marginBottom: 16,
@@ -446,7 +454,7 @@ export default function ChatScreen() {
 
               {/* Heading */}
               <View style={{ paddingHorizontal: 24, marginBottom: 16 }}>
-                <Text className="text-white text-lg font-bold">
+                <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold' }}>
                   Actions
                 </Text>
               </View>
@@ -456,7 +464,7 @@ export default function ChatScreen() {
                 {/* Regular Actions Card */}
                 <View
                   style={{
-                    backgroundColor: '#1F2937',
+                    backgroundColor: colors.iconBackground,
                     borderRadius: 12,
                     padding: 12,
                     gap: 12,
@@ -471,12 +479,12 @@ export default function ChatScreen() {
                       paddingVertical: 10,
                       paddingHorizontal: 8,
                       borderRadius: 8,
-                      backgroundColor: pressed ? '#0F0E11' : 'transparent',
+                      backgroundColor: pressed ? colors.iconBackground : 'transparent',
                     })}
                   >
                     <View className="flex flex-row items-center gap-3">
-                      <Ionicons name="person-outline" size={18} color="#FFFFFF" />
-                      <Text className="text-white text-base font-medium">
+                      <Ionicons name="person-outline" size={18} color={colors.textColor} />
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
                         View Profile
                       </Text>
                     </View>
@@ -491,12 +499,12 @@ export default function ChatScreen() {
                       paddingVertical: 10,
                       paddingHorizontal: 8,
                       borderRadius: 8,
-                      backgroundColor: pressed ? '#0F0E11' : 'transparent',
+                      backgroundColor: pressed ? colors.iconBackground : 'transparent',
                     })}
                   >
                     <View className="flex flex-row items-center gap-3">
-                      <Ionicons name="notifications-outline" size={18} color="#FFFFFF" />
-                      <Text className="text-white text-base font-medium">
+                      <Ionicons name="notifications-outline" size={18} color={colors.textColor} />
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
                         Mute Notifications
                       </Text>
                     </View>
@@ -511,12 +519,12 @@ export default function ChatScreen() {
                       paddingVertical: 10,
                       paddingHorizontal: 8,
                       borderRadius: 8,
-                      backgroundColor: pressed ? '#0F0E11' : 'transparent',
+                      backgroundColor: pressed ? colors.iconBackground : 'transparent',
                     })}
                   >
                     <View className="flex flex-row items-center gap-3">
-                      <Ionicons name="cube-outline" size={18} color="#FFFFFF" />
-                      <Text className="text-white text-base font-medium">
+                      <Ionicons name="cube-outline" size={18} color={colors.textColor} />
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
                         View Product
                       </Text>
                     </View>
@@ -526,7 +534,7 @@ export default function ChatScreen() {
                 {/* Destructive Actions Card */}
                 <View
                   style={{
-                    backgroundColor: '#1F2937',
+                    backgroundColor: colors.iconBackground,
                     borderRadius: 12,
                     padding: 12,
                     gap: 12,
@@ -552,12 +560,12 @@ export default function ChatScreen() {
                       paddingVertical: 10,
                       paddingHorizontal: 8,
                       borderRadius: 8,
-                      backgroundColor: pressed ? '#0F0E11' : 'transparent',
+                      backgroundColor: pressed ? colors.iconBackground : 'transparent',
                     })}
                   >
                     <View className="flex flex-row items-center gap-3">
                       <Ionicons name="ban-outline" size={18} color="#EF4444" />
-                      <Text className="text-white text-base font-medium">
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
                         Block User
                       </Text>
                     </View>
@@ -583,12 +591,12 @@ export default function ChatScreen() {
                       paddingVertical: 10,
                       paddingHorizontal: 8,
                       borderRadius: 8,
-                      backgroundColor: pressed ? '#0F0E11' : 'transparent',
+                      backgroundColor: pressed ? colors.iconBackground : 'transparent',
                     })}
                   >
                     <View className="flex flex-row items-center gap-3">
                       <Ionicons name="flag-outline" size={18} color="#EF4444" />
-                      <Text className="text-white text-base font-medium">
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
                         Report User
                       </Text>
                     </View>
@@ -617,12 +625,12 @@ export default function ChatScreen() {
                       paddingVertical: 10,
                       paddingHorizontal: 8,
                       borderRadius: 8,
-                      backgroundColor: pressed ? '#0F0E11' : 'transparent',
+                      backgroundColor: pressed ? colors.iconBackground : 'transparent',
                     })}
                   >
                     <View className="flex flex-row items-center gap-3">
                       <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                      <Text className="text-white text-base font-medium">
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
                         Delete Chat
                       </Text>
                     </View>

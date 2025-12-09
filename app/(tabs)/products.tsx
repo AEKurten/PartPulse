@@ -2,7 +2,9 @@ import { FilterChip } from '@/components/filter-chip';
 import { FloatingActionButton } from '@/components/floating-action-button';
 import { ProductCard } from '@/components/product-card';
 import { SearchWithFilters } from '@/components/search-with-filters';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { FlatList, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +25,7 @@ const filterChips = ['All', 'GPU', 'CPU', 'RAM', 'Storage', 'Motherboard'];
 
 export default function ProductsScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [filteredProducts, setFilteredProducts] = useState(allProducts);
@@ -62,10 +65,11 @@ export default function ProductsScreen() {
     <View
       className="flex-1"
       style={{
-        backgroundColor: '#0F0E11',
+        backgroundColor: colors.backgroundColor,
         paddingTop: insets.top,
       }}
     >
+      <StatusBar style={colors.statusBarStyle} />
       <View
         style={{
           paddingLeft: Math.max(insets.left, 24),
@@ -126,8 +130,8 @@ export default function ProductsScreen() {
         )}
         ListEmptyComponent={
           <View style={{ padding: 32, alignItems: 'center' }}>
-            <Text className="text-white text-lg">No products found</Text>
-            <Text className="text-neutral-400 text-sm mt-2">
+            <Text style={{ color: colors.textColor, fontSize: 18 }}>No products found</Text>
+            <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginTop: 8 }}>
               Try adjusting your search or filters
             </Text>
           </View>

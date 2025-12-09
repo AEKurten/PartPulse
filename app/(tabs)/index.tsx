@@ -2,8 +2,10 @@ import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingProductCard } from '@/components/trending-product-card';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +28,7 @@ const trendingProducts = [
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
 
@@ -33,11 +36,12 @@ export default function HomeScreen() {
     <View
       className="flex-1"
       style={{
-        backgroundColor: '#0F0E11',
+        backgroundColor: colors.backgroundColor,
         paddingTop: insets.top,
         paddingBottom: insets.bottom,
       }}
     >
+      <StatusBar style={colors.statusBarStyle} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -56,17 +60,17 @@ export default function HomeScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <Text className="text-2xl font-bold text-white">
+              <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
                 {greeting}, {USERNAME}
               </Text>
-              <Text className="text-base text-neutral-400 mt-1">
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 16, marginTop: 4 }}>
                 Welcome back
               </Text>
             </View>
             <Pressable
               onPress={() => router.push('/chats')}
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderRadius: 12,
                 width: 48,
                 height: 48,
@@ -74,7 +78,7 @@ export default function HomeScreen() {
                 alignItems: 'center',
               }}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#FFFFFF" />
+              <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.textColor} />
             </Pressable>
           </View>
         </View>

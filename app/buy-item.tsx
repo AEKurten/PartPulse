@@ -1,8 +1,10 @@
 import { PrivateChat } from '@/components/private-chat';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Dimensions, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,6 +44,7 @@ const productData = {
 
 export default function BuyItemScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [hasAlert, setHasAlert] = useState(false);
@@ -61,9 +64,10 @@ export default function BuyItemScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor: '#0F0E11' }}
+      style={{ flex: 1, backgroundColor: colors.backgroundColor }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
+      <StatusBar style={colors.statusBarStyle} />
       {/* Fixed Top Buttons */}
       <View
         style={{
@@ -84,7 +88,7 @@ export default function BuyItemScreen() {
         <Pressable
           onPress={() => router.back()}
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: colors.cardBackground + 'CC',
             borderRadius: 20,
             width: 40,
             height: 40,
@@ -101,7 +105,7 @@ export default function BuyItemScreen() {
           <Pressable
             onPress={handleAlertPress}
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: colors.cardBackground + 'CC',
               borderRadius: 20,
               width: 40,
               height: 40,
@@ -112,7 +116,7 @@ export default function BuyItemScreen() {
             <Ionicons
               name={hasAlert ? 'notifications' : 'notifications-outline'}
               size={24}
-              color={hasAlert ? '#EC4899' : '#FFFFFF'}
+              color={hasAlert ? '#EC4899' : colors.textColor}
             />
           </Pressable>
 
@@ -120,7 +124,7 @@ export default function BuyItemScreen() {
           <Pressable
             onPress={handleWishlistPress}
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: colors.cardBackground + 'CC',
               borderRadius: 20,
               width: 40,
               height: 40,
@@ -131,7 +135,7 @@ export default function BuyItemScreen() {
             <Ionicons
               name={isWishlisted ? 'heart' : 'heart-outline'}
               size={24}
-              color={isWishlisted ? '#EC4899' : '#FFFFFF'}
+              color={isWishlisted ? '#EC4899' : colors.textColor}
             />
           </Pressable>
         </View>
@@ -211,22 +215,22 @@ export default function BuyItemScreen() {
         >
           {/* Product Name & Price */}
           <View style={{ marginBottom: 16 }}>
-            <Text className="text-3xl font-bold text-white mb-2">
+            <Text style={{ color: colors.textColor, fontSize: 30, fontWeight: 'bold', marginBottom: 8 }}>
               {productData.name}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Text className="text-white text-3xl font-bold">
+              <Text style={{ color: colors.textColor, fontSize: 30, fontWeight: 'bold' }}>
                 {productData.price}
               </Text>
               <View
                 style={{
-                  backgroundColor: '#2B2E36',
+                  backgroundColor: colors.cardBackground,
                   borderRadius: 8,
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                 }}
               >
-                <Text className="text-neutral-400 text-sm">
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                   {productData.condition}
                 </Text>
               </View>
@@ -237,7 +241,7 @@ export default function BuyItemScreen() {
           {productData.aiCertified && (
             <View
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderRadius: 12,
                 padding: 16,
                 marginBottom: 16,
@@ -267,7 +271,7 @@ export default function BuyItemScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text className="text-white text-base font-semibold">
+                  <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
                     AI Certified
                   </Text>
                   <View
@@ -278,7 +282,7 @@ export default function BuyItemScreen() {
                       paddingVertical: 2,
                     }}
                   >
-                    <Text className="text-white text-xs font-bold">
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' }}>
                       Grade {productData.aiGrade}
                     </Text>
                   </View>
@@ -308,7 +312,7 @@ export default function BuyItemScreen() {
                         }}
                       />
                     </View>
-                    <Text className="text-neutral-400 text-xs">
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
                       {productData.aiScore}/100
                     </Text>
                   </View>
@@ -331,20 +335,20 @@ export default function BuyItemScreen() {
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <Ionicons name="person-circle" size={40} color="#9CA3AF" />
+              <Ionicons name="person-circle" size={40} color={colors.secondaryTextColor} />
               <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text className="text-white text-base font-semibold">
+                <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
                   {productData.sellerName}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="star" size={14} color="#F59E0B" />
-                  <Text className="text-neutral-400 text-sm">
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                     {productData.sellerRating} • {productData.location}
                   </Text>
                 </View>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            <Ionicons name="chevron-forward" size={20} color={colors.secondaryTextColor} />
           </Pressable>
 
           {/* Private Chat Component - Only for Private Sales */}
@@ -362,22 +366,22 @@ export default function BuyItemScreen() {
 
           {/* Description */}
           <View style={{ marginBottom: 24 }}>
-            <Text className="text-white text-xl font-bold mb-3">
+            <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
               Description
             </Text>
-            <Text className="text-neutral-300 text-base leading-6">
+            <Text style={{ color: colors.secondaryTextColor, fontSize: 16, lineHeight: 24 }}>
               {productData.description}
             </Text>
           </View>
 
           {/* Specifications */}
           <View style={{ marginBottom: 24 }}>
-            <Text className="text-white text-xl font-bold mb-3">
+            <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
               Specifications
             </Text>
             <View
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderRadius: 12,
                 overflow: 'hidden',
               }}
@@ -392,11 +396,11 @@ export default function BuyItemScreen() {
                     paddingHorizontal: 16,
                     borderBottomWidth:
                       index < productData.specifications.length - 1 ? 1 : 0,
-                    borderBottomColor: '#1F2937',
+                    borderBottomColor: colors.borderColor,
                   }}
                 >
-                  <Text className="text-neutral-400 text-base">{spec.label}</Text>
-                  <Text className="text-white text-base font-medium">
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 16 }}>{spec.label}</Text>
+                  <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
                     {spec.value}
                   </Text>
                 </View>
@@ -421,14 +425,14 @@ export default function BuyItemScreen() {
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="time-outline" size={16} color="#9CA3AF" />
-                <Text className="text-neutral-400 text-sm">
+                <Ionicons name="time-outline" size={16} color={colors.secondaryTextColor} />
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                   Listed {productData.listedDate}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="location-outline" size={16} color="#9CA3AF" />
-                <Text className="text-neutral-400 text-sm">
+                <Ionicons name="location-outline" size={16} color={colors.secondaryTextColor} />
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                   {productData.location}
                 </Text>
               </View>
@@ -450,11 +454,11 @@ export default function BuyItemScreen() {
             paddingRight: Math.max(insets.right, 24),
             paddingBottom: insets.bottom + 16,
             paddingTop: 16,
-            backgroundColor: '#0F0E11',
+            backgroundColor: colors.backgroundColor,
             flexDirection: 'row',
             gap: 12,
             borderTopWidth: 1,
-            borderTopColor: '#1F2937',
+            borderTopColor: colors.borderColor,
           }}
         >
           {/* Add to Cart Button */}
@@ -476,7 +480,7 @@ export default function BuyItemScreen() {
                   alignItems: 'center',
                 }}
               >
-                <Text className="text-white text-lg font-bold">
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
                   Add to Cart
                 </Text>
               </LinearGradient>
