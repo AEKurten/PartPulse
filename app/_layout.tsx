@@ -1,11 +1,28 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { preventAutoHideAsync, hideAsync } from 'expo-splash-screen';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../global.css';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  Poppins_100Thin,
+  Poppins_200ExtraLight,
+  Poppins_300Light,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+  Poppins_900Black,
+} from '@expo-google-fonts/poppins';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+preventAutoHideAsync();
 
 export const unstable_settings = {
   initialRouteName: 'welcome',
@@ -13,6 +30,28 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  const [loaded, error] = useFonts({
+    Poppins_100Thin,
+    Poppins_200ExtraLight,
+    Poppins_300Light,
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
+    Poppins_900Black,
+  });
+
+  useEffect(() => {
+    if (loaded || error) {
+      hideAsync();
+    }
+  }, [loaded, error]);
+
+  if (!loaded && !error) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
