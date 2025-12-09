@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 
 type SearchBarProps = {
   placeholder?: string;
@@ -11,6 +12,7 @@ export function SearchBar({
   placeholder = 'Search for parts...',
   onSearchChange,
 }: SearchBarProps) {
+  const colors = useThemeColors();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleChange = (text: string) => {
@@ -23,7 +25,7 @@ export function SearchBar({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#2B2E36',
+        backgroundColor: colors.cardBackground,
         borderRadius: 999,
         paddingHorizontal: 20,
         paddingVertical: 14,
@@ -31,13 +33,13 @@ export function SearchBar({
     >
       <TextInput
         placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={colors.secondaryTextColor}
         value={searchQuery}
         onChangeText={handleChange}
         style={{
           flex: 1,
           fontSize: 16,
-          color: '#FFFFFF',
+          color: colors.textColor,
         }}
       />
       <Ionicons name="search" size={24} color="#D62F76" />

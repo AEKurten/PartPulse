@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Href, Link } from 'expo-router';
 import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 
 type TrendingProductCardProps = {
   id: number;
@@ -25,13 +26,14 @@ export function TrendingProductCard({
   aiCertified = false,
   href = '/buy-item',
 }: TrendingProductCardProps) {
+  const colors = useThemeColors();
   const card = (
     <Pressable>
       {({ pressed }) => (
         <View
           style={{
             flex: 1,
-            backgroundColor: '#2B2E36',
+            backgroundColor: colors.cardBackground,
             borderRadius: 16,
             padding: 12,
             opacity: pressed ? 0.8 : 1,
@@ -45,7 +47,7 @@ export function TrendingProductCard({
               style={{
                 width: 80,
                 height: 80,
-                backgroundColor: '#1A1C22',
+                backgroundColor: colors.iconBackground,
                 borderRadius: 12,
                 marginRight: 12,
                 overflow: 'hidden',
@@ -60,18 +62,18 @@ export function TrendingProductCard({
             {/* Top Section: Name and Price */}
             <View className="flex-1 justify-between">
               <View className="flex-row justify-between">
-                <Text className="text-white font-semibold text-base mb-1 w-2/3" numberOfLines={2}>
+                <Text style={{ color: colors.textColor, fontWeight: '600', fontSize: 16, marginBottom: 4, width: '66%' }} numberOfLines={2}>
                   {name}
                 </Text>
-                <Text className="text-white font-bold text-xl text-right">
+                <Text style={{ color: colors.textColor, fontWeight: 'bold', fontSize: 20, textAlign: 'right' }}>
                   {price}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="person-circle-outline" size={14} color="#9CA3AF" />
-                  <Text className="text-neutral-400 text-xs ml-2">Sold by</Text>
-                  <Text className="text-white font-semibold text-xs ml-1">{sellerName}</Text>
+                  <Ionicons name="person-circle-outline" size={14} color={colors.secondaryTextColor} />
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 12, marginLeft: 8 }}>Sold by</Text>
+                  <Text style={{ color: colors.textColor, fontWeight: '600', fontSize: 12, marginLeft: 4 }}>{sellerName}</Text>
                 </View>
                 {aiCertified && (
                   <View

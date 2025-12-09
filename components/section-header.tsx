@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 
 type SectionHeaderProps = {
   title: string;
@@ -11,6 +12,7 @@ export function SectionHeader({
   showAllText = 'Show all',
   onShowAllPress,
 }: SectionHeaderProps) {
+  const colors = useThemeColors();
   return (
     <View
       style={{
@@ -20,10 +22,10 @@ export function SectionHeader({
         marginBottom: 16,
       }}
     >
-      <Text className="text-xl font-bold text-white">{title}</Text>
+      <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold' }}>{title}</Text>
       {onShowAllPress && (
         <Pressable onPress={onShowAllPress}>
-          <Text className="text-[#EC4899]">{showAllText}</Text>
+          <Text style={{ color: '#EC4899' }}>{showAllText}</Text>
         </Pressable>
       )}
     </View>

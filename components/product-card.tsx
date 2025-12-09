@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useState } from 'react';
@@ -14,6 +15,7 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ id, name, price, condition, image, onPress, onWishlistPress }: ProductCardProps) {
+  const colors = useThemeColors();
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const handleWishlistPress = () => {
@@ -39,7 +41,7 @@ export function ProductCard({ id, name, price, condition, image, onPress, onWish
                 width: '100%',
                 aspectRatio: 1,
                 borderRadius: 12,
-                backgroundColor: '#1A1C22',
+                backgroundColor: colors.iconBackground,
                 marginBottom: 12,
                 overflow: 'hidden',
               }}
@@ -70,18 +72,18 @@ export function ProductCard({ id, name, price, condition, image, onPress, onWish
               <Ionicons
                 name={isWishlisted ? 'heart' : 'heart-outline'}
                 size={20}
-                color={isWishlisted ? '#EC4899' : '#FFFFFF'}
+                color={isWishlisted ? '#EC4899' : colors.textColor}
               />
             </Pressable>
           </View>
           <View className="flex-1 flex-row justify-between w-full">
-            <Text className="text-white font-medium text-base" numberOfLines={1}>
+            <Text style={{ color: colors.textColor, fontWeight: '500', fontSize: 16 }} numberOfLines={1}>
               {name}
             </Text>
-            <Text className="text-neutral-400 text-sm">{condition}</Text>
+            <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>{condition}</Text>
 
           </View>
-          <Text className="text-white font-bold text-2xl mt-2">{price}</Text>
+          <Text style={{ color: colors.textColor, fontWeight: 'bold', fontSize: 24, marginTop: 8 }}>{price}</Text>
 
         </View>
       )}
