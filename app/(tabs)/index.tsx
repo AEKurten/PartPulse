@@ -8,18 +8,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Hardcoded username for now
 const USERNAME = 'Alex';
 
-// Mock product data
+// Mock product data with Unsplash images
 const recommendedProducts = [
-  { id: 1, name: 'RTX 4090', price: '$1,599', condition: 'Excellent', image: '🎮' },
-  { id: 2, name: 'Ryzen 9 7950X', price: '$549', condition: 'Like New', image: '💻' },
-  { id: 3, name: '32GB DDR5 RAM', price: '$199', condition: 'Excellent', image: '💾' },
-  { id: 4, name: '1TB NVMe SSD', price: '$89', condition: 'Good', image: '💿' },
+  { id: 1, name: 'RTX 4090', price: '$1,599', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
+  { id: 2, name: 'Ryzen 9 7950X', price: '$549', condition: 'Like New', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80' },
+  { id: 3, name: '32GB DDR5 RAM', price: '$199', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
+  { id: 4, name: '1TB NVMe SSD', price: '$89', condition: 'Good', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
 ];
 
 const trendingProducts = [
-  { id: 5, name: 'NVIDIA GeForce RTX 4080 Super', price: '$999', condition: 'Excellent', image: '🎮', rating: 4.8, sellerName: 'TechGuru', aiCertified: true },
-  { id: 6, name: 'Intel i9-14900K', price: '$579', condition: 'Like New', image: '💻', rating: 4.9, sellerName: 'PCBuilder Pro', aiCertified: true },
-  { id: 7, name: 'ASUS ROG Motherboard', price: '$349', condition: 'Excellent', image: '🔌', rating: 4.7, sellerName: 'Hardware Haven', aiCertified: false },
+  { id: 5, name: 'NVIDIA GeForce RTX 4080 Super', price: '$999', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80', rating: 4.8, sellerName: 'TechGuru', aiCertified: true },
+  { id: 6, name: 'Intel i9-14900K', price: '$579', condition: 'Like New', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80', rating: 4.9, sellerName: 'PCBuilder Pro', aiCertified: true },
+  { id: 7, name: 'ASUS ROG Motherboard', price: '$349', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80', rating: 4.7, sellerName: 'Hardware Haven', aiCertified: false },
 ];
 
 export default function HomeScreen() {

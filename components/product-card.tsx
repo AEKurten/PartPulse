@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 
 type ProductCardProps = {
@@ -11,11 +12,11 @@ type ProductCardProps = {
 
 export function ProductCard({ name, price, condition, image, onPress }: ProductCardProps) {
   return (
-    <Pressable onPress={onPress} style={{ width: 180, marginRight: 16 }}>
+    <Pressable onPress={onPress} className='flex-1'>
       {({ pressed }) => (
         <View
           style={{
-            backgroundColor: '#2B2E36',
+            flex: 1,
             borderRadius: 16,
             padding: 16,
             opacity: pressed ? 0.8 : 1,
@@ -23,22 +24,29 @@ export function ProductCard({ name, price, condition, image, onPress }: ProductC
         >
           <View
             style={{
-              width: '100%',
-              height: 120,
-              backgroundColor: '#1A1C22',
+              width: 180,
+              height: 180,
               borderRadius: 12,
-              justifyContent: 'center',
-              alignItems: 'center',
+              backgroundColor: '#1A1C22',
               marginBottom: 12,
+              overflow: 'hidden',
             }}
           >
-            <Text style={{ fontSize: 48 }}>{image}</Text>
+            <Image
+              source={{ uri: image }}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+            />
           </View>
-          <Text className="text-white font-semibold text-base mb-1" numberOfLines={1}>
-            {name}
-          </Text>
-          <Text className="text-neutral-400 text-sm mb-2">{condition}</Text>
-          <Text className="text-[#EC4899] font-bold text-lg">{price}</Text>
+          <View className="flex-1 flex-row justify-between w-full">
+            <Text className="text-white font-medium text-base" numberOfLines={1}>
+              {name}
+            </Text>
+            <Text className="text-neutral-400 text-sm">{condition}</Text>
+
+          </View>
+          <Text className="text-white font-bold text-2xl mt-2">{price}</Text>
+
         </View>
       )}
     </Pressable>

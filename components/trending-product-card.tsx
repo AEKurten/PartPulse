@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Href, Link } from 'expo-router';
+import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 
 type TrendingProductCardProps = {
@@ -46,12 +47,15 @@ export function TrendingProductCard({
                 height: 80,
                 backgroundColor: '#1A1C22',
                 borderRadius: 12,
-                justifyContent: 'center',
-                alignItems: 'center',
                 marginRight: 12,
+                overflow: 'hidden',
               }}
             >
-              <Text style={{ fontSize: 32 }}>{image}</Text>
+              <Image
+                source={{ uri: image }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
             </View>
             {/* Top Section: Name and Price */}
             <View className="flex-1 justify-between">
