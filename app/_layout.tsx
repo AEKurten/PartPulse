@@ -73,7 +73,7 @@ function RootLayoutContent() {
           <Stack.Screen name="order-status" options={{ headerShown: true, title: 'Order Status' }} />
           <Stack.Screen name="ai-tools" options={{ headerShown: true, title: 'AI Tools' }} />
           <Stack.Screen name="ai-builder-results" options={{ headerShown: true, title: 'Build Results' }} />
-          <Stack.Screen name="seller-profile" options={{ headerShown: true, title: 'Seller Profile' }} />
+          <Stack.Screen name="seller-profile" options={{ headerShown: false }} />
           <Stack.Screen name="feedback" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>

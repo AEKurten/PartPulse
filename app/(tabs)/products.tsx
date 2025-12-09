@@ -118,7 +118,7 @@ export default function ProductsScreen() {
           paddingBottom: 24,
           gap: 16,
         }}
-        columnWrapperStyle={{ gap: 0 }}
+        columnWrapperStyle={{ gap: 16 }}
         renderItem={({ item }) => (
           <View style={{ flex: 1 }}>
             <ProductCard
