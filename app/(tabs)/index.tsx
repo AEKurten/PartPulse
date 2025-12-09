@@ -1,9 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingProductCard } from '@/components/trending-product-card';
 import { router } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Hardcoded username for now
@@ -45,14 +46,37 @@ export default function HomeScreen() {
           paddingBottom: 24,
         }}
       >
-        {/* Welcome Message */}
+        {/* Welcome Message with Chats Button */}
         <View style={{ paddingTop: 24, marginBottom: 20 }}>
-          <Text className="text-2xl font-bold text-white">
-            {greeting}, {USERNAME}
-          </Text>
-          <Text className="text-base text-neutral-400 mt-1">
-            Welcome back
-          </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text className="text-2xl font-bold text-white">
+                {greeting}, {USERNAME}
+              </Text>
+              <Text className="text-base text-neutral-400 mt-1">
+                Welcome back
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/chats')}
+              style={{
+                backgroundColor: '#2B2E36',
+                borderRadius: 12,
+                width: 48,
+                height: 48,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#FFFFFF" />
+            </Pressable>
+          </View>
         </View>
 
         {/* Search Bar */}

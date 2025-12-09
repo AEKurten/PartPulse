@@ -1,0 +1,206 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Mock chat conversations
+const conversations = [
+  {
+    id: 1,
+    sellerName: 'TechGuru',
+    sellerAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80',
+    productName: 'NVIDIA GeForce RTX 4090',
+    productImage: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=100&h=100&fit=crop&q=80',
+    lastMessage: "Hi, I'm interested in your NVIDIA GeForce RTX 4090",
+    timestamp: '2 hours ago',
+    unreadCount: 2,
+  },
+  {
+    id: 2,
+    sellerName: 'PCBuilder Pro',
+    sellerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80',
+    productName: 'Intel i9-14900K',
+    productImage: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=100&h=100&fit=crop&q=80',
+    lastMessage: 'Is this still available?',
+    timestamp: '1 day ago',
+    unreadCount: 0,
+  },
+  {
+    id: 3,
+    sellerName: 'Hardware Haven',
+    sellerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&q=80',
+    productName: 'ASUS ROG Motherboard',
+    productImage: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=100&h=100&fit=crop&q=80',
+    lastMessage: 'Thanks for your interest! Yes, it is.',
+    timestamp: '3 days ago',
+    unreadCount: 1,
+  },
+];
+
+export default function ChatsScreen() {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: '#0F0E11',
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+      }}
+    >
+      {/* Header */}
+      <View
+        style={{
+          paddingLeft: Math.max(insets.left, 24),
+          paddingRight: Math.max(insets.right, 24),
+          paddingTop: 24,
+          paddingBottom: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </Pressable>
+        <Text className="text-2xl font-bold text-white">
+          Messages
+        </Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      {/* Conversations List */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingLeft: Math.max(insets.left, 24),
+          paddingRight: Math.max(insets.right, 24),
+          paddingBottom: 24,
+        }}
+      >
+        {conversations.map((conversation) => (
+          <Pressable
+            key={conversation.id}
+            onPress={() => {
+              // Navigate to chat detail
+              console.log('Open chat:', conversation.id);
+            }}
+          >
+            {({ pressed }) => (
+              <View
+                style={{
+                  backgroundColor: '#2B2E36',
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  opacity: pressed ? 0.8 : 1,
+                }}
+              >
+                {/* Seller Avatar */}
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    overflow: 'hidden',
+                    marginRight: 12,
+                    backgroundColor: '#1F2937',
+                  }}
+                >
+                  <Image
+                    source={{ uri: conversation.sellerAvatar }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                  />
+                </View>
+
+                {/* Conversation Info */}
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Text className="text-white text-base font-semibold" numberOfLines={1}>
+                      {conversation.sellerName}
+                    </Text>
+                    <Text className="text-neutral-400 text-xs">
+                      {conversation.timestamp}
+                    </Text>
+                  </View>
+
+                  {/* Product Preview */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 6,
+                      gap: 8,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        backgroundColor: '#1F2937',
+                      }}
+                    >
+                      <Image
+                        source={{ uri: conversation.productImage }}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit="cover"
+                      />
+                    </View>
+                    <Text className="text-neutral-400 text-xs flex-1" numberOfLines={1}>
+                      {conversation.productName}
+                    </Text>
+                  </View>
+
+                  {/* Last Message */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text
+                      className={`text-sm ${conversation.unreadCount > 0 ? 'text-white font-semibold' : 'text-neutral-400'}`}
+                      numberOfLines={1}
+                      style={{ flex: 1 }}
+                    >
+                      {conversation.lastMessage}
+                    </Text>
+                    {conversation.unreadCount > 0 && (
+                      <View
+                        style={{
+                          backgroundColor: '#EC4899',
+                          borderRadius: 10,
+                          minWidth: 20,
+                          height: 20,
+                          paddingHorizontal: 6,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Text className="text-white text-xs font-bold">
+                          {conversation.unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
