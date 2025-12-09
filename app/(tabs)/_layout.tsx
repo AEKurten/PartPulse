@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
-import { Grid3x3, Home, User, Zap } from 'lucide-react-native';
+import { Home, Store, User, Zap } from 'lucide-react-native';
 import { Platform, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -56,7 +56,7 @@ export default function TabLayout() {
         options={{
           title: 'Market',
           tabBarIcon: ({ focused }) => (
-            <TabBarIcon Icon={Grid3x3} focused={focused} />
+            <TabBarIcon Icon={Store} focused={focused} />
           ),
         }}
       />

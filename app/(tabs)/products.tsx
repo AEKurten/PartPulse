@@ -1,4 +1,5 @@
 import { FilterChip } from '@/components/filter-chip';
+import { FloatingActionButton } from '@/components/floating-action-button';
 import { ProductCard } from '@/components/product-card';
 import { SearchWithFilters } from '@/components/search-with-filters';
 import { router } from 'expo-router';
@@ -132,6 +133,7 @@ export default function ProductsScreen() {
           </View>
         }
       />
+      <FloatingActionButton />
     </View>
   );
 }

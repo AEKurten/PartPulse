@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import LottieView from "lottie-react-native";
 import { useEffect } from "react";
@@ -105,17 +105,44 @@ export default function WelcomeScreen() {
   }));
 
   return (
-    <View 
-      className="flex-1" 
-      style={{ 
+    <View
+      className="flex-1"
+      style={{
         backgroundColor: '#0F0E11',
-        paddingTop: insets.top, 
-        paddingBottom: insets.bottom, 
-        paddingLeft: insets.left, 
-        paddingRight: insets.right 
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        paddingLeft: insets.left,
+        paddingRight: insets.right
       }}
     >
       <StatusBar style="light" />
+
+      {/* Skip Button */}
+      <View
+        style={{
+          position: 'absolute',
+          top: insets.top + 16,
+          right: Math.max(insets.right, 24),
+          zIndex: 100,
+        }}
+      >
+        <Pressable
+          onPress={() => router.push('/(tabs)')}
+        >
+          {({ pressed }) => (
+            <Text
+              style={{
+                color: '#FFFFFF',
+                fontSize: 16,
+                fontWeight: '600',
+                opacity: pressed ? 0.7 : 1,
+              }}
+            >
+              Skip
+            </Text>
+          )}
+        </Pressable>
+      </View>
 
       <View className="flex-1 px-6 pt-16 pb-12 z-30">
         {/* App Name */}
