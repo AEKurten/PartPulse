@@ -2,6 +2,7 @@ import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingProductCard } from '@/components/trending-product-card';
+import { router } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,10 +11,10 @@ const USERNAME = 'Alex';
 
 // Mock product data with Unsplash images
 const recommendedProducts = [
-  { id: 1, name: 'RTX 4090', price: '$1,599', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-  { id: 2, name: 'Ryzen 9 7950X', price: '$549', condition: 'Like New', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80' },
-  { id: 3, name: '32GB DDR5 RAM', price: '$199', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
-  { id: 4, name: '1TB NVMe SSD', price: '$89', condition: 'Good', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
+  { id: 1, name: 'RTX 4090', price: '$1,599', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
+  { id: 2, name: 'Ryzen 9 7950X', price: '$549', condition: 'B', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80' },
+  { id: 3, name: '32GB DDR5 RAM', price: '$199', condition: 'A', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
+  { id: 4, name: '1TB NVMe SSD', price: '$89', condition: 'C', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
 ];
 
 const trendingProducts = [
@@ -63,7 +64,7 @@ export default function HomeScreen() {
         <View style={{ marginBottom: 32 }}>
           <SectionHeader
             title="Recommended for You"
-            onShowAllPress={() => console.log('Show all recommended')}
+            onShowAllPress={() => router.push('/(tabs)/products')}
           />
           <ScrollView
             horizontal
@@ -71,7 +72,9 @@ export default function HomeScreen() {
             contentContainerStyle={{ paddingRight: 24 }}
           >
             {recommendedProducts.map((product) => (
-              <ProductCard key={product.id} {...product} />
+              <View key={product.id} style={{ width: 180 }}>
+                <ProductCard {...product} />
+              </View>
             ))}
           </ScrollView>
         </View>
@@ -80,7 +83,7 @@ export default function HomeScreen() {
         <View>
           <SectionHeader
             title="Trending Products"
-            onShowAllPress={() => console.log('Show all trending')}
+            onShowAllPress={() => router.push('/(tabs)/products')}
           />
           <View>
             {trendingProducts.map((product) => (

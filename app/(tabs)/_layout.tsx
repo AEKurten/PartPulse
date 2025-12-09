@@ -1,40 +1,93 @@
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import { Grid3x3, Home, User, Zap } from 'lucide-react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { TabBarIcon } from '@/components/tab-bar-icon';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarStyle: {
+          height: 96,
+          borderRadius: 24,
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+          paddingHorizontal: 8,
+          
+        },
+        tabBarBackground: () => (
+          Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={80}
+              style={StyleSheet.absoluteFill}
+              tint="dark"
+            />
+          ) : null
+        ),
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 8,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 16,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon Icon={Home} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="market"
         options={{
-          title: 'Search',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+          title: 'Market',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon Icon={Grid3x3} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ai-tools"
+        options={{
+          title: 'AI Tools',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon Icon={Zap} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon Icon={User} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="products"
+        options={{
+          href: null, // Hide from tab bar but keep accessible
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>
