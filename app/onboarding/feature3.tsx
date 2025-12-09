@@ -53,7 +53,7 @@ export default function Feature3Screen() {
         Compatibility Checking
       </Text>
       <Animated.View
-        style={imageAnimatedStyle}
+        style={[imageAnimatedStyle, { marginBottom: 32 }]}
         className="items-center "
       >
         <LottieView
@@ -73,6 +73,8 @@ export default function Feature3Screen() {
               style={[
                 buttonAnimatedStyle,
                 {
+                  width: 56,
+                  height: 56,
                   borderRadius: 28,
                   opacity: pressed ? 0.8 : 1,
                   shadowColor: '#EC4899',

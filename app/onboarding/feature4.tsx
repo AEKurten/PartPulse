@@ -41,7 +41,7 @@ export default function Feature4Screen() {
         AI Build Planner
       </Text>
       <Animated.View
-        style={imageAnimatedStyle}
+        style={[imageAnimatedStyle, { marginBottom: 32 }]}
         className="items-center "
       >
         <LottieView
@@ -51,10 +51,10 @@ export default function Feature4Screen() {
           style={{ width: 256, height: 256 }}
         />
       </Animated.View>
-      <Text className="text-white text-center mb-8 text-xl opacity-90 font-semibold flex-1">
+      <Text className="text-white text-center mb-8 text-xl opacity-90 font-semibold">
         Get personalized PC build recommendations based on your budget and performance goals.
       </Text>
-      <View style={{ width: '100%', gap: 16 }}>
+      <View style={{ width: '100%', gap: 16, flex : 1, justifyContent: 'flex-end'}}>
         <Link href="/auth/signup" asChild>
           <Pressable style={{ width: '100%' }}>
             {({ pressed }) => (

@@ -53,7 +53,7 @@ export default function Feature1Screen() {
         AI-Powered Pricing
       </Text>
       <Animated.View
-        style={imageAnimatedStyle}
+        style={[imageAnimatedStyle, { marginBottom: 32 }]}
         className="items-center "
       >
         <LottieView
