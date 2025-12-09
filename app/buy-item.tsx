@@ -39,7 +39,7 @@ const productData = {
   ],
   location: 'San Francisco, CA',
   listedDate: '2 days ago',
-  isPrivateSale: true, // true for private sale, false for marketplace
+  isPrivateSale: false, // true for private sale, false for marketplace
 };
 
 export default function BuyItemScreen() {
