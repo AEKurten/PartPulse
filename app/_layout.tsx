@@ -65,7 +65,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="sell" options={{ headerShown: false }} />
-            <Stack.Screen name="buy-item" options={{ headerShown: true, title: 'Product Details' }} />
+            <Stack.Screen name="buy-item" options={{ headerShown: false }} />
             <Stack.Screen name="checkout" options={{ headerShown: true, title: 'Checkout' }} />
             <Stack.Screen name="order-status" options={{ headerShown: true, title: 'Order Status' }} />
             <Stack.Screen name="ai-tools" options={{ headerShown: true, title: 'AI Tools' }} />
