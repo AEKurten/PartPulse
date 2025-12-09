@@ -9,6 +9,7 @@ module.exports = {
     extend: {
       colors: {
         'dark-bg': '#1C1B1F',
+        'dark-bg-darker': '#0F0E11',
       },
       fontFamily: {
         sans: ['Poppins_400Regular', 'system-ui', 'sans-serif'],

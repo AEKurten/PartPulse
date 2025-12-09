@@ -2,9 +2,9 @@ import { View, Text } from 'react-native';
 
 export default function HomeScreen() {
   return (
-    <View className="flex-1 bg-white dark:bg-gray-900">
+    <View className="flex-1" style={{ backgroundColor: '#0F0E11' }}>
       <View className="p-6">
-        <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+        <Text className="text-2xl font-bold text-white">
           Home
         </Text>
       </View>

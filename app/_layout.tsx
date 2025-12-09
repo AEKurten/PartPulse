@@ -56,7 +56,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider >
-      <View className="flex-1 bg-white dark:bg-dark-bg">
+      <View className="flex-1" style={{ backgroundColor: '#0F0E11' }}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />

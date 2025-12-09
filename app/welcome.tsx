@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -106,17 +105,17 @@ export default function WelcomeScreen() {
   }));
 
   return (
-    <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }}>
+    <View 
+      className="flex-1" 
+      style={{ 
+        backgroundColor: '#0F0E11',
+        paddingTop: insets.top, 
+        paddingBottom: insets.bottom, 
+        paddingLeft: insets.left, 
+        paddingRight: insets.right 
+      }}
+    >
       <StatusBar style="light" />
-      {/* Full screen overlay with blur and black opacity */}
-      <View className="absolute inset-0 z-20">
-        <BlurView
-          intensity={100}
-          tint="dark"
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-        <View className="absolute inset-0 bg-black/60" />
-      </View>
 
       <View className="flex-1 px-6 pt-16 pb-12 z-30">
         {/* App Name */}
