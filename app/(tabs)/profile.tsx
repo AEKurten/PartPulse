@@ -338,200 +338,616 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          <View
-            style={{
-              backgroundColor: cardBackground,
-              borderRadius: 16,
-              padding: 20,
-              gap: 16,
-            }}
-          >
-            {/* CPU */}
-            <View>
-              <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '500', marginBottom: 8 }}>CPU</Text>
-              {isEditingRig ? (
-                <TextInput
-                  placeholder="e.g., Intel i9-14900K"
-                  placeholderTextColor={secondaryTextColor}
-                  value={rigSpecs.cpu}
-                  onChangeText={(text) => setRigSpecs({ ...rigSpecs, cpu: text })}
-                  style={{
-                    backgroundColor: inputBackground,
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: textColor,
-                    borderWidth: 1,
-                    borderColor: borderColor,
-                  }}
-                />
-              ) : (
-                <Text style={{ color: textColor, fontSize: 18, fontWeight: '500' }}>
-                  {rigSpecs.cpu || 'Not specified'}
-                </Text>
-              )}
+          {/* Rig Specs Grid */}
+          <View style={{ gap: 12 }}>
+            {/* Row 1: CPU & GPU */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {/* CPU Card */}
+              <View style={{ flex: 1 }}>
+                {isEditingRig ? (
+                  <View
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#3B82F6' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="hardware-chip-outline" size={20} color="#3B82F6" />
+                      </View>
+                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>CPU</Text>
+                    </View>
+                    <TextInput
+                      placeholder="e.g., Intel i9-14900K"
+                      placeholderTextColor={secondaryTextColor}
+                      value={rigSpecs.cpu}
+                      onChangeText={(text) => setRigSpecs({ ...rigSpecs, cpu: text })}
+                      style={{
+                        backgroundColor: inputBackground,
+                        borderRadius: 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        fontSize: 13,
+                        color: textColor,
+                        borderWidth: 1,
+                        borderColor: borderColor,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => setIsEditingRig(true)}
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: rigSpecs.cpu ? '#3B82F6' + '40' : borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#3B82F6' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="hardware-chip-outline" size={20} color="#3B82F6" />
+                      </View>
+                      <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>CPU</Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: rigSpecs.cpu ? textColor : secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: rigSpecs.cpu ? '600' : '400',
+                      }}
+                      numberOfLines={2}
+                    >
+                      {rigSpecs.cpu || 'Not specified'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {/* GPU Card */}
+              <View style={{ flex: 1 }}>
+                {isEditingRig ? (
+                  <View
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#EC4899' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="tv-outline" size={20} color="#EC4899" />
+                      </View>
+                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>GPU</Text>
+                    </View>
+                    <TextInput
+                      placeholder="e.g., NVIDIA RTX 4090"
+                      placeholderTextColor={secondaryTextColor}
+                      value={rigSpecs.gpu}
+                      onChangeText={(text) => setRigSpecs({ ...rigSpecs, gpu: text })}
+                      style={{
+                        backgroundColor: inputBackground,
+                        borderRadius: 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        fontSize: 13,
+                        color: textColor,
+                        borderWidth: 1,
+                        borderColor: borderColor,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => setIsEditingRig(true)}
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: rigSpecs.gpu ? '#EC4899' + '40' : borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#EC4899' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="tv-outline" size={20} color="#EC4899" />
+                      </View>
+                      <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>GPU</Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: rigSpecs.gpu ? textColor : secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: rigSpecs.gpu ? '600' : '400',
+                      }}
+                      numberOfLines={2}
+                    >
+                      {rigSpecs.gpu || 'Not specified'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
 
-            {/* GPU */}
-            <View>
-              <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '500', marginBottom: 8 }}>GPU</Text>
-              {isEditingRig ? (
-                <TextInput
-                  placeholder="e.g., NVIDIA RTX 4090"
-                  placeholderTextColor={secondaryTextColor}
-                  value={rigSpecs.gpu}
-                  onChangeText={(text) => setRigSpecs({ ...rigSpecs, gpu: text })}
-                  style={{
-                    backgroundColor: inputBackground,
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: textColor,
-                    borderWidth: 1,
-                    borderColor: borderColor,
-                  }}
-                />
-              ) : (
-                <Text style={{ color: textColor, fontSize: 18, fontWeight: '500' }}>
-                  {rigSpecs.gpu || 'Not specified'}
-                </Text>
-              )}
+            {/* Row 2: Motherboard & RAM */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {/* Motherboard Card */}
+              <View style={{ flex: 1 }}>
+                {isEditingRig ? (
+                  <View
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#10B981' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="grid-outline" size={20} color="#10B981" />
+                      </View>
+                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>MB</Text>
+                    </View>
+                    <TextInput
+                      placeholder="e.g., ASUS ROG Z790-E"
+                      placeholderTextColor={secondaryTextColor}
+                      value={rigSpecs.motherboard}
+                      onChangeText={(text) => setRigSpecs({ ...rigSpecs, motherboard: text })}
+                      style={{
+                        backgroundColor: inputBackground,
+                        borderRadius: 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        fontSize: 13,
+                        color: textColor,
+                        borderWidth: 1,
+                        borderColor: borderColor,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => setIsEditingRig(true)}
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: rigSpecs.motherboard ? '#10B981' + '40' : borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#10B981' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="grid-outline" size={20} color="#10B981" />
+                      </View>
+                      <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>MB</Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: rigSpecs.motherboard ? textColor : secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: rigSpecs.motherboard ? '600' : '400',
+                      }}
+                      numberOfLines={2}
+                    >
+                      {rigSpecs.motherboard || 'Not specified'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {/* RAM Card */}
+              <View style={{ flex: 1 }}>
+                {isEditingRig ? (
+                  <View
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#F97316' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="layers-outline" size={20} color="#F97316" />
+                      </View>
+                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>RAM</Text>
+                    </View>
+                    <TextInput
+                      placeholder="e.g., 32GB DDR5-6000"
+                      placeholderTextColor={secondaryTextColor}
+                      value={rigSpecs.ram}
+                      onChangeText={(text) => setRigSpecs({ ...rigSpecs, ram: text })}
+                      style={{
+                        backgroundColor: inputBackground,
+                        borderRadius: 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        fontSize: 13,
+                        color: textColor,
+                        borderWidth: 1,
+                        borderColor: borderColor,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => setIsEditingRig(true)}
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: rigSpecs.ram ? '#F97316' + '40' : borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#F97316' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="layers-outline" size={20} color="#F97316" />
+                      </View>
+                      <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>RAM</Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: rigSpecs.ram ? textColor : secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: rigSpecs.ram ? '600' : '400',
+                      }}
+                      numberOfLines={2}
+                    >
+                      {rigSpecs.ram || 'Not specified'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
 
-            {/* Motherboard */}
-            <View>
-              <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '500', marginBottom: 8 }}>Motherboard</Text>
-              {isEditingRig ? (
-                <TextInput
-                  placeholder="e.g., ASUS ROG Strix Z790-E"
-                  placeholderTextColor={secondaryTextColor}
-                  value={rigSpecs.motherboard}
-                  onChangeText={(text) => setRigSpecs({ ...rigSpecs, motherboard: text })}
-                  style={{
-                    backgroundColor: inputBackground,
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: textColor,
-                    borderWidth: 1,
-                    borderColor: borderColor,
-                  }}
-                />
-              ) : (
-                <Text style={{ color: textColor, fontSize: 18, fontWeight: '500' }}>
-                  {rigSpecs.motherboard || 'Not specified'}
-                </Text>
-              )}
+            {/* Row 3: Storage, PSU & Case */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {/* Storage Card */}
+              <View style={{ flex: 1 }}>
+                {isEditingRig ? (
+                  <View
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#8B5CF6' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="disc-outline" size={20} color="#8B5CF6" />
+                      </View>
+                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>Storage</Text>
+                    </View>
+                    <TextInput
+                      placeholder="e.g., 2TB NVMe SSD"
+                      placeholderTextColor={secondaryTextColor}
+                      value={rigSpecs.storage}
+                      onChangeText={(text) => setRigSpecs({ ...rigSpecs, storage: text })}
+                      style={{
+                        backgroundColor: inputBackground,
+                        borderRadius: 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        fontSize: 13,
+                        color: textColor,
+                        borderWidth: 1,
+                        borderColor: borderColor,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => setIsEditingRig(true)}
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: rigSpecs.storage ? '#8B5CF6' + '40' : borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#8B5CF6' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="disc-outline" size={20} color="#8B5CF6" />
+                      </View>
+                      <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>Storage</Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: rigSpecs.storage ? textColor : secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: rigSpecs.storage ? '600' : '400',
+                      }}
+                      numberOfLines={2}
+                    >
+                      {rigSpecs.storage || 'Not specified'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {/* PSU Card */}
+              <View style={{ flex: 1 }}>
+                {isEditingRig ? (
+                  <View
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#F59E0B' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="flash-outline" size={20} color="#F59E0B" />
+                      </View>
+                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>PSU</Text>
+                    </View>
+                    <TextInput
+                      placeholder="e.g., 1000W 80+ Gold"
+                      placeholderTextColor={secondaryTextColor}
+                      value={rigSpecs.psu}
+                      onChangeText={(text) => setRigSpecs({ ...rigSpecs, psu: text })}
+                      style={{
+                        backgroundColor: inputBackground,
+                        borderRadius: 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        fontSize: 13,
+                        color: textColor,
+                        borderWidth: 1,
+                        borderColor: borderColor,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => setIsEditingRig(true)}
+                    style={{
+                      backgroundColor: cardBackground,
+                      borderRadius: 16,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: rigSpecs.psu ? '#F59E0B' + '40' : borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: '#F59E0B' + '20',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}
+                      >
+                        <Ionicons name="flash-outline" size={20} color="#F59E0B" />
+                      </View>
+                      <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>PSU</Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: rigSpecs.psu ? textColor : secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: rigSpecs.psu ? '600' : '400',
+                      }}
+                      numberOfLines={2}
+                    >
+                      {rigSpecs.psu || 'Not specified'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
 
-            {/* RAM */}
+            {/* Case Card - Full Width */}
             <View>
-              <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '500', marginBottom: 8 }}>RAM</Text>
               {isEditingRig ? (
-                <TextInput
-                  placeholder="e.g., 32GB DDR5-6000"
-                  placeholderTextColor={secondaryTextColor}
-                  value={rigSpecs.ram}
-                  onChangeText={(text) => setRigSpecs({ ...rigSpecs, ram: text })}
+                <View
                   style={{
-                    backgroundColor: inputBackground,
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: textColor,
+                    backgroundColor: cardBackground,
+                    borderRadius: 16,
+                    padding: 16,
                     borderWidth: 1,
                     borderColor: borderColor,
                   }}
-                />
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: '#06B6D4' + '20',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 12,
+                      }}
+                    >
+                      <Ionicons name="cube-outline" size={20} color="#06B6D4" />
+                    </View>
+                    <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>Case</Text>
+                  </View>
+                  <TextInput
+                    placeholder="e.g., Lian Li O11 Dynamic"
+                    placeholderTextColor={secondaryTextColor}
+                    value={rigSpecs.case}
+                    onChangeText={(text) => setRigSpecs({ ...rigSpecs, case: text })}
+                    style={{
+                      backgroundColor: inputBackground,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      fontSize: 13,
+                      color: textColor,
+                      borderWidth: 1,
+                      borderColor: borderColor,
+                    }}
+                  />
+                </View>
               ) : (
-                <Text style={{ color: textColor, fontSize: 18, fontWeight: '500' }}>
-                  {rigSpecs.ram || 'Not specified'}
-                </Text>
-              )}
-            </View>
-
-            {/* Storage */}
-            <View>
-              <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '500', marginBottom: 8 }}>Storage</Text>
-              {isEditingRig ? (
-                <TextInput
-                  placeholder="e.g., 2TB NVMe SSD"
-                  placeholderTextColor={secondaryTextColor}
-                  value={rigSpecs.storage}
-                  onChangeText={(text) => setRigSpecs({ ...rigSpecs, storage: text })}
+                <Pressable
+                  onPress={() => setIsEditingRig(true)}
                   style={{
-                    backgroundColor: inputBackground,
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: textColor,
+                    backgroundColor: cardBackground,
+                    borderRadius: 16,
+                    padding: 16,
                     borderWidth: 1,
-                    borderColor: borderColor,
+                    borderColor: rigSpecs.case ? '#06B6D4' + '40' : borderColor,
                   }}
-                />
-              ) : (
-                <Text style={{ color: textColor, fontSize: 18, fontWeight: '500' }}>
-                  {rigSpecs.storage || 'Not specified'}
-                </Text>
-              )}
-            </View>
-
-            {/* PSU */}
-            <View>
-              <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '500', marginBottom: 8 }}>Power Supply</Text>
-              {isEditingRig ? (
-                <TextInput
-                  placeholder="e.g., 1000W 80+ Gold"
-                  placeholderTextColor={secondaryTextColor}
-                  value={rigSpecs.psu}
-                  onChangeText={(text) => setRigSpecs({ ...rigSpecs, psu: text })}
-                  style={{
-                    backgroundColor: inputBackground,
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: textColor,
-                    borderWidth: 1,
-                    borderColor: borderColor,
-                  }}
-                />
-              ) : (
-                <Text style={{ color: textColor, fontSize: 18, fontWeight: '500' }}>
-                  {rigSpecs.psu || 'Not specified'}
-                </Text>
-              )}
-            </View>
-
-            {/* Case */}
-            <View>
-              <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '500', marginBottom: 8 }}>Case</Text>
-              {isEditingRig ? (
-                <TextInput
-                  placeholder="e.g., Lian Li O11 Dynamic"
-                  placeholderTextColor={secondaryTextColor}
-                  value={rigSpecs.case}
-                  onChangeText={(text) => setRigSpecs({ ...rigSpecs, case: text })}
-                  style={{
-                    backgroundColor: inputBackground,
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    fontSize: 14,
-                    color: textColor,
-                    borderWidth: 1,
-                    borderColor: borderColor,
-                  }}
-                />
-              ) : (
-                <Text style={{ color: textColor, fontSize: 18, fontWeight: '500' }}>
-                  {rigSpecs.case || 'Not specified'}
-                </Text>
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: '#06B6D4' + '20',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 12,
+                      }}
+                    >
+                      <Ionicons name="cube-outline" size={20} color="#06B6D4" />
+                    </View>
+                    <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>Case</Text>
+                  </View>
+                  <Text
+                    style={{
+                      color: rigSpecs.case ? textColor : secondaryTextColor,
+                      fontSize: 14,
+                      fontWeight: rigSpecs.case ? '600' : '400',
+                    }}
+                    numberOfLines={2}
+                  >
+                    {rigSpecs.case || 'Not specified'}
+                  </Text>
+                </Pressable>
               )}
             </View>
 
@@ -541,18 +957,18 @@ export default function ProfileScreen() {
                 onPress={handleGetAISuggestions}
                 style={{
                   backgroundColor: '#EC4899',
-                  borderRadius: 12,
-                  paddingVertical: 14,
+                  borderRadius: 16,
+                  paddingVertical: 16,
                   paddingHorizontal: 20,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 8,
-                  marginTop: 8,
+                  gap: 10,
+                  marginTop: 4,
                 }}
               >
-                <Ionicons name="sparkles-outline" size={20} color="#FFFFFF" />
-                <Text className="text-white text-base font-semibold">
+                <Ionicons name="sparkles-outline" size={22} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
                   Get AI Upgrade Suggestions
                 </Text>
               </Pressable>

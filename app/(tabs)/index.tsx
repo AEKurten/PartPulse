@@ -75,7 +75,7 @@ export default function HomeScreen() {
                   <Ionicons name="home" size={24} color="#EC4899" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                  <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>
                     {greeting}, {USERNAME}
                   </Text>
                   <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>

@@ -12,7 +12,6 @@ export default function FeedbackScreen() {
   const { actualTheme } = useTheme();
   const [feedback, setFeedback] = useState('');
   const [email, setEmail] = useState('');
-  const [rating, setRating] = useState<number | null>(null);
 
   const backgroundColor = actualTheme === 'dark' ? '#0F0E11' : '#FFFFFF';
   const cardBackground = actualTheme === 'dark' ? '#2B2E36' : '#F3F4F6';
@@ -31,7 +30,6 @@ export default function FeedbackScreen() {
     console.log('Feedback submitted:', {
       feedback,
       email: email.trim() || 'Not provided',
-      rating,
     });
 
     Alert.alert(
@@ -114,37 +112,6 @@ export default function FeedbackScreen() {
           }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Rating Section */}
-          <View style={{ marginBottom: 32 }}>
-            <Text style={{ color: textColor, fontSize: 16, fontWeight: '600', marginBottom: 16 }}>
-              How would you rate your experience?
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Pressable
-                  key={star}
-                  onPress={() => setRating(star)}
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    backgroundColor: cardBackground,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderWidth: 2,
-                    borderColor: rating && star <= rating ? '#EC4899' : borderColor,
-                  }}
-                >
-                  <Ionicons
-                    name={rating && star <= rating ? 'star' : 'star-outline'}
-                    size={28}
-                    color={rating && star <= rating ? '#EC4899' : secondaryTextColor}
-                  />
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
           {/* Feedback Form */}
           <View
             style={{
