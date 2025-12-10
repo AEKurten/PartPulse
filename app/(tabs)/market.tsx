@@ -1,3 +1,5 @@
+import SubscriptionPaywall from "@/app/subscription-paywall";
+import { AdBanner } from "@/components/ad-banner";
 import { FilterChip } from "@/components/filter-chip";
 import { FilterModal, FilterState } from "@/components/filter-modal";
 import { FloatingActionButton } from "@/components/floating-action-button";
@@ -165,6 +167,7 @@ export default function MarketScreen() {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState("All");
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -451,19 +454,24 @@ export default function MarketScreen() {
           </View>
         }
         ListHeaderComponent={
-          filteredProducts.length > 0 ? (
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  color: colors.secondaryTextColor,
-                  fontSize: 14,
-                }}
-              >
-                {filteredProducts.length} product
-                {filteredProducts.length !== 1 ? "s" : ""} found
-              </Text>
+          <View>
+            {filteredProducts.length > 0 && (
+              <View style={{ marginBottom: 16 }}>
+                <Text
+                  style={{
+                    color: colors.secondaryTextColor,
+                    fontSize: 14,
+                  }}
+                >
+                  {filteredProducts.length} product
+                  {filteredProducts.length !== 1 ? "s" : ""} found
+                </Text>
+              </View>
+            )}
+            <View style={{ marginBottom: 24 }}>
+              <AdBanner onUpgradePress={() => setShowPaywall(true)} />
             </View>
-          ) : null
+          </View>
         }
       />
       <FloatingActionButton />
@@ -476,6 +484,13 @@ export default function MarketScreen() {
         onFiltersChange={handleFiltersChange}
         onApplyFilters={handleApplyFilters}
         onResetFilters={handleResetFilters}
+      />
+
+      {/* Paywall Modal */}
+      <SubscriptionPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="upgrade-prompt"
       />
     </View>
   );

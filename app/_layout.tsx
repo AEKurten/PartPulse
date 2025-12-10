@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../global.css';
 
 import { ThemeProvider, useTheme } from '@/contexts/theme-context';
+import { SubscriptionProvider } from '@/contexts/subscription-context';
 import {
   Poppins_100Thin,
   Poppins_200ExtraLight,
@@ -87,7 +88,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <RootLayoutContent />
+        <SubscriptionProvider>
+          <RootLayoutContent />
+        </SubscriptionProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

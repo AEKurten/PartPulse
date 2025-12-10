@@ -1018,6 +1018,31 @@ export default function ProfileScreen() {
               />
             </View>
 
+            {/* Subscription */}
+            <Pressable
+              onPress={() => {
+                router.push('/(tabs)/subscription');
+              }}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                <Ionicons name="rocket-outline" size={20} color={textColor} />
+                <View>
+                  <Text style={{ color: textColor, fontSize: 16, fontWeight: '600' }}>
+                    Subscription
+                  </Text>
+                  <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+                    Manage your plan
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={secondaryTextColor} />
+            </Pressable>
+
             {/* Notifications */}
             <Pressable
               onPress={() => {

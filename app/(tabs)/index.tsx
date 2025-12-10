@@ -2,6 +2,7 @@ import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingProductCard } from '@/components/trending-product-card';
+import { AdBanner } from '@/components/ad-banner';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -15,6 +16,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SubscriptionPaywall from '@/app/subscription-paywall';
 
 // Hardcoded username for now
 const USERNAME = 'Alex';
@@ -40,6 +42,7 @@ export default function HomeScreen() {
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
   
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const buttonsOpacity = useSharedValue(1);
   const buttonsWidth = useSharedValue(56);
   const buttonsMargin = useSharedValue(12);
@@ -231,7 +234,19 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
+
+        {/* Ad Banner */}
+        <View style={{ marginTop: 32, marginBottom: 16 }}>
+          <AdBanner onUpgradePress={() => setShowPaywall(true)} />
+        </View>
       </ScrollView>
+
+      {/* Paywall Modal */}
+      <SubscriptionPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="upgrade-prompt"
+      />
     </View>
   );
 }

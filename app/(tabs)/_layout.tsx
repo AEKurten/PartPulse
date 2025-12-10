@@ -106,6 +106,12 @@ export default function TabLayout() {
           href: null, // Hide from tab bar but keep accessible
         }}
       />
+      <Tabs.Screen
+        name="subscription"
+        options={{
+          href: null, // Hide from tab bar but keep accessible
+        }}
+      />
     </Tabs>
   );
 }

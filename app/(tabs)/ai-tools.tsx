@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSubscription } from '@/contexts/subscription-context';
+import SubscriptionPaywall from '@/app/subscription-paywall';
 
 const buildTypes = [
   { id: 'gaming', label: 'Gaming', icon: 'game-controller-outline', description: 'High-performance gaming rig' },
@@ -27,6 +29,7 @@ const resolutions = [
 export default function AIToolsScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { subscription, canUseAIBuild, useAIBuild, getUsagePercentage } = useSubscription();
   const [buildMode, setBuildMode] = useState<'new' | 'upgrade'>('new');
   const [budget, setBudget] = useState('');
   const [selectedBuildType, setSelectedBuildType] = useState<string | null>(null);
@@ -34,12 +37,10 @@ export default function AIToolsScreen() {
   const [customResolution, setCustomResolution] = useState('');
   const [radius, setRadius] = useState('50');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [isFirstUse, setIsFirstUse] = useState(false);
 
-  const handleGenerate = () => {
-    if (!budget || !selectedBuildType || !selectedResolution || !radius) {
-      return;
-    }
-
+  const proceedWithGeneration = async () => {
     setIsGenerating(true);
     
     // Simulate AI processing
@@ -61,8 +62,57 @@ export default function AIToolsScreen() {
     }, 1500);
   };
 
+  const handleGenerate = async () => {
+    if (!budget || !selectedBuildType || !selectedResolution || !radius) {
+      return;
+    }
+
+    // Check if this is first use (free plan with 0 usage)
+    const isFirstTime = subscription.plan === 'free' && used === 0;
+    
+    // Check if user can use AI feature
+    if (!canUseAIBuild(buildMode)) {
+      setIsFirstUse(false);
+      setShowPaywall(true);
+      return;
+    }
+
+    // Show paywall on first use for free users (soft paywall - can dismiss)
+    if (isFirstTime) {
+      setIsFirstUse(true);
+      setShowPaywall(true);
+      return; // Wait for user to dismiss or subscribe
+    }
+
+    // Record usage
+    const success = await useAIBuild(buildMode);
+    if (!success) {
+      setIsFirstUse(false);
+      setShowPaywall(true);
+      return;
+    }
+
+    await proceedWithGeneration();
+  };
+
+  const handleContinueWithFree = async () => {
+    // Record usage when continuing with free plan
+    await useAIBuild(buildMode);
+    await proceedWithGeneration();
+  };
+
+  const usagePercentage = getUsagePercentage(buildMode);
+  const limit = buildMode === 'new' ? subscription.features.aiBuildsPerMonth : subscription.features.aiUpgradesPerMonth;
+  const used = buildMode === 'new' ? subscription.usage.aiBuildsUsed : subscription.usage.aiUpgradesUsed;
+
   const canGenerate = budget && selectedBuildType && selectedResolution && radius && 
     (selectedResolution !== 'custom' || customResolution);
+
+  const usagePercentage = getUsagePercentage(buildMode);
+  const limit = buildMode === 'new' ? subscription.features.aiBuildsPerMonth : subscription.features.aiUpgradesPerMonth;
+  const used = buildMode === 'new' ? subscription.usage.aiBuildsUsed : subscription.usage.aiUpgradesUsed;
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [isFirstUse, setIsFirstUse] = useState(false);
 
   return (
     <KeyboardAvoidingView
@@ -107,6 +157,70 @@ export default function AIToolsScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Usage Indicator */}
+          {limit !== -1 && (
+            <View
+              style={{
+                backgroundColor: colors.cardBackground,
+                borderRadius: 12,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: colors.borderColor,
+                marginTop: 16,
+              }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }}>
+                  {buildMode === 'new' ? 'AI Builds' : 'AI Upgrades'} remaining this month
+                </Text>
+                <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: 'bold' }}>
+                  {limit - used} / {limit}
+                </Text>
+              </View>
+              <View
+                style={{
+                  height: 8,
+                  backgroundColor: colors.iconBackground,
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                }}
+              >
+                <View
+                  style={{
+                    height: '100%',
+                    width: `${usagePercentage}%`,
+                    backgroundColor: usagePercentage >= 80 ? '#EF4444' : usagePercentage >= 60 ? '#F59E0B' : '#10B981',
+                    borderRadius: 4,
+                  }}
+                />
+              </View>
+              {!canUseAIBuild(buildMode) && (
+                <Pressable
+                  onPress={() => setShowPaywall(true)}
+                  style={{ marginTop: 12 }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: '#EC4899' + '20',
+                      borderRadius: 8,
+                      padding: 12,
+                      borderWidth: 1,
+                      borderColor: '#EC4899',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name="rocket" size={18} color="#EC4899" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#EC4899', fontSize: 14, fontWeight: '600' }}>
+                      Upgrade to unlock more
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Build Mode Selection */}
@@ -492,6 +606,25 @@ export default function AIToolsScreen() {
           )}
         </Pressable>
       </View>
+
+      {/* Paywall Modal */}
+      <SubscriptionPaywall
+        visible={showPaywall}
+        onClose={() => {
+          if (isFirstUse) {
+            // If first use, proceed with free plan when dismissed
+            handleContinueWithFree();
+          }
+          setShowPaywall(false);
+          setIsFirstUse(false);
+        }}
+        onSubscribe={async () => {
+          // After subscribing, proceed with generation
+          await proceedWithGeneration();
+        }}
+        buildMode={buildMode}
+        trigger={isFirstUse ? 'first-use' : canUseAIBuild(buildMode) ? 'upgrade-prompt' : 'limit-reached'}
+      />
     </KeyboardAvoidingView>
   );
 }
