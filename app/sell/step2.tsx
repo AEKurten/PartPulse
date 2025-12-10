@@ -6,9 +6,12 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { StatusBar } from 'expo-status-bar';
 
 export default function SellStep2Screen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [photos, setPhotos] = useState<string[]>([]);
 
   const requestPermissions = async () => {
@@ -95,9 +98,10 @@ export default function SellStep2Screen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: '#0F0E11' }}
+      style={{ flex: 1, backgroundColor: colors.backgroundColor }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
+      <StatusBar style={colors.statusBarStyle} />
       <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
@@ -119,12 +123,12 @@ export default function SellStep2Screen() {
               onPress={() => router.back()}
               style={{ marginBottom: 24, alignSelf: 'flex-start' }}
             >
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={24} color={colors.textColor} />
             </Pressable>
-            <Text className="text-3xl font-bold text-white mb-2">
+            <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>
               Add Photos
             </Text>
-            <Text className="text-base text-neutral-400">
+            <Text style={{ color: colors.secondaryTextColor, fontSize: 16 }}>
               Upload photos of your item. Add at least one photo.
             </Text>
           </View>
@@ -140,15 +144,15 @@ export default function SellStep2Screen() {
                 backgroundColor: 'transparent',
                 borderRadius: 12,
                 borderWidth: 2,
-                borderColor: '#3B3E46',
+                borderColor: colors.borderColor,
                 borderStyle: 'dashed',
                 justifyContent: 'center',
                 alignItems: 'center',
                 flexDirection: 'row',
               }}
             >
-              <Ionicons name="cloud-upload-outline" size={24} color="#9CA3AF" style={{ marginRight: 8 }} />
-              <Text className="text-neutral-400 text-base font-semibold">
+              <Ionicons name="cloud-upload-outline" size={24} color={colors.secondaryTextColor} style={{ marginRight: 8 }} />
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 16, fontWeight: '600' }}>
                 Add Photo
               </Text>
             </Pressable>
@@ -208,16 +212,18 @@ export default function SellStep2Screen() {
           {photos.length === 0 && (
             <View
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderRadius: 12,
                 padding: 16,
                 marginBottom: 32,
+                borderWidth: 1,
+                borderColor: colors.borderColor,
               }}
             >
-              <Text className="text-white text-sm font-semibold mb-2">
+              <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
                 📸 Photo Tips
               </Text>
-              <Text className="text-neutral-400 text-xs leading-5">
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 12, lineHeight: 20 }}>
                 • Take clear, well-lit photos{'\n'}
                 • Show all angles and any damage{'\n'}
                 • Include serial numbers if visible{'\n'}
@@ -229,7 +235,7 @@ export default function SellStep2Screen() {
           {/* Photo Count */}
           {photos.length > 0 && (
             <View style={{ marginBottom: 32 }}>
-              <Text className="text-neutral-400 text-sm text-center">
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 14, textAlign: 'center' }}>
                 {photos.length} {photos.length === 1 ? 'photo' : 'photos'} added
                 {photos.length < 10 && ` • ${10 - photos.length} more allowed`}
               </Text>
@@ -250,7 +256,9 @@ export default function SellStep2Screen() {
             paddingRight: Math.max(insets.right, 24),
             paddingBottom: insets.bottom + 16,
             paddingTop: 16,
-            backgroundColor: '#0F0E11',
+            backgroundColor: colors.backgroundColor,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderColor,
           }}
         >
           <Pressable

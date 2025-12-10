@@ -5,6 +5,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { StatusBar } from 'expo-status-bar';
 
 // Mock listing data (in real app, this would come from previous steps)
 const listingData = {
@@ -30,6 +32,7 @@ type ListingType = 'marketplace' | 'instant';
 
 export default function SellStep4Screen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [listingType, setListingType] = useState<ListingType>('marketplace');
 
   const handlePublish = () => {
@@ -40,9 +43,10 @@ export default function SellStep4Screen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: '#0F0E11' }}
+      style={{ flex: 1, backgroundColor: colors.backgroundColor }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
+      <StatusBar style={colors.statusBarStyle} />
       <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 140 }}
@@ -64,7 +68,7 @@ export default function SellStep4Screen() {
                 onPress={() => router.back()}
                 style={{ marginBottom: 24, alignSelf: 'flex-start' }}
               >
-                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                <Ionicons name="arrow-back" size={24} color={colors.textColor} />
               </Pressable>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <View
@@ -81,10 +85,10 @@ export default function SellStep4Screen() {
                   <Ionicons name="checkmark-circle" size={24} color="#EC4899" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                  <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
                     Review & Publish
                   </Text>
-                  <Text style={{ color: '#D1D5DB', fontSize: 14 }}>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                     Review your listing details before publishing
                   </Text>
                 </View>
@@ -94,21 +98,23 @@ export default function SellStep4Screen() {
             {/* Market Price Trend */}
             <View
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderRadius: 16,
                 padding: 20,
                 marginBottom: 24,
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                borderWidth: 1,
+                borderColor: colors.borderColor,
               }}
             >
               <View style={{ flex: 1 }}>
-                <Text className="text-neutral-400 text-sm mb-1">
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 4 }}>
                   Current Market Price
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text className="text-white text-2xl font-bold">
+                  <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
                     {marketData.currentMarketPrice}
                   </Text>
                   <View
@@ -139,7 +145,7 @@ export default function SellStep4Screen() {
                     </Text>
                   </View>
                 </View>
-                <Text className="text-neutral-400 text-xs mt-2">
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 12, marginTop: 8 }}>
                   Average: {marketData.averagePrice}
                 </Text>
               </View>
@@ -148,20 +154,22 @@ export default function SellStep4Screen() {
             {/* Listing Overview Card */}
             <View
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderRadius: 16,
                 padding: 24,
                 marginBottom: 24,
+                borderWidth: 1,
+                borderColor: colors.borderColor,
               }}
             >
-              <Text className="text-white text-xl font-bold mb-6">
+              <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 24 }}>
                 Listing Overview
               </Text>
 
               {/* Item Name */}
               <View style={{ marginBottom: 20 }}>
-                <Text className="text-neutral-400 text-sm mb-2">Item Name</Text>
-                <Text className="text-white text-lg font-semibold">
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Item Name</Text>
+                <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600' }}>
                   {listingData.itemName}
                 </Text>
               </View>
@@ -175,33 +183,33 @@ export default function SellStep4Screen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text className="text-neutral-400 text-sm mb-2">Category</Text>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Category</Text>
                   <View
                     style={{
-                      backgroundColor: '#1F2937',
+                      backgroundColor: colors.iconBackground,
                       borderRadius: 8,
                       paddingHorizontal: 12,
                       paddingVertical: 8,
                       alignSelf: 'flex-start',
                     }}
                   >
-                    <Text className="text-white text-sm font-medium">
+                    <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '500' }}>
                       {listingData.category}
                     </Text>
                   </View>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text className="text-neutral-400 text-sm mb-2">Condition</Text>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Condition</Text>
                   <View
                     style={{
-                      backgroundColor: '#1F2937',
+                      backgroundColor: colors.iconBackground,
                       borderRadius: 8,
                       paddingHorizontal: 12,
                       paddingVertical: 8,
                       alignSelf: 'flex-start',
                     }}
                   >
-                    <Text className="text-white text-sm font-medium">
+                    <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '500' }}>
                       {listingData.condition}
                     </Text>
                   </View>
@@ -210,8 +218,8 @@ export default function SellStep4Screen() {
 
               {/* Description */}
               <View style={{ marginBottom: 20 }}>
-                <Text className="text-neutral-400 text-sm mb-2">Description</Text>
-                <Text className="text-white text-base leading-6">
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Description</Text>
+                <Text style={{ color: colors.textColor, fontSize: 16, lineHeight: 24 }}>
                   {listingData.description}
                 </Text>
               </View>
@@ -225,16 +233,16 @@ export default function SellStep4Screen() {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text className="text-neutral-400 text-sm mb-2">Asking Price</Text>
-                  <Text className="text-white text-xl font-bold">
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Asking Price</Text>
+                  <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold' }}>
                     {listingData.price}
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text className="text-neutral-400 text-sm mb-2">Photos</Text>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Photos</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="images-outline" size={20} color="#9CA3AF" />
-                    <Text className="text-white text-lg font-semibold">
+                    <Ionicons name="images-outline" size={20} color={colors.secondaryTextColor} />
+                    <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600' }}>
                       {listingData.photos}
                     </Text>
                   </View>
@@ -244,7 +252,7 @@ export default function SellStep4Screen() {
               {/* AI Certification Badge */}
               <View
                 style={{
-                  backgroundColor: '#1F2937',
+                  backgroundColor: colors.iconBackground,
                   borderRadius: 12,
                   padding: 16,
                   flexDirection: 'row',
@@ -254,10 +262,10 @@ export default function SellStep4Screen() {
               >
                 <Ionicons name="sparkles" size={24} color="#EC4899" />
                 <View style={{ flex: 1 }}>
-                  <Text className="text-white text-sm font-semibold">
+                  <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }}>
                     AI Certified
                   </Text>
-                  <Text className="text-neutral-400 text-xs">
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
                     Grade {listingData.aiGrade} • Score {listingData.aiScore}
                   </Text>
                 </View>
@@ -266,7 +274,7 @@ export default function SellStep4Screen() {
 
             {/* Listing Type Selection */}
             <View style={{ marginBottom: 24 }}>
-              <Text className="text-white text-xl font-bold mb-4">
+              <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
                 Listing Type
               </Text>
 
@@ -278,12 +286,12 @@ export default function SellStep4Screen() {
                 {({ pressed }) => (
                   <View
                     style={{
-                      backgroundColor: '#2B2E36',
+                      backgroundColor: colors.cardBackground,
                       borderRadius: 16,
                       padding: 20,
                       borderWidth: 2,
                       borderColor:
-                        listingType === 'marketplace' ? '#EC4899' : 'transparent',
+                        listingType === 'marketplace' ? '#EC4899' : colors.borderColor,
                       opacity: pressed ? 0.8 : 1,
                     }}
                   >
@@ -296,10 +304,10 @@ export default function SellStep4Screen() {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text className="text-white text-lg font-bold mb-1">
+                        <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
                           Marketplace Listing
                         </Text>
-                        <Text className="text-neutral-400 text-sm">
+                        <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                           List your item on the marketplace. Set your price and
                           negotiate with buyers.
                         </Text>
@@ -311,7 +319,7 @@ export default function SellStep4Screen() {
                           borderRadius: 12,
                           borderWidth: 2,
                           borderColor:
-                            listingType === 'marketplace' ? '#EC4899' : '#9CA3AF',
+                            listingType === 'marketplace' ? '#EC4899' : colors.secondaryTextColor,
                           backgroundColor:
                             listingType === 'marketplace' ? '#EC4899' : 'transparent',
                           justifyContent: 'center',
@@ -337,8 +345,8 @@ export default function SellStep4Screen() {
                         gap: 8,
                       }}
                     >
-                      <Ionicons name="people-outline" size={16} color="#9CA3AF" />
-                      <Text className="text-neutral-400 text-xs">
+                      <Ionicons name="people-outline" size={16} color={colors.secondaryTextColor} />
+                      <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
                         Reach thousands of buyers • You set the price
                       </Text>
                     </View>
@@ -351,12 +359,12 @@ export default function SellStep4Screen() {
                 {({ pressed }) => (
                   <View
                     style={{
-                      backgroundColor: '#2B2E36',
+                      backgroundColor: colors.cardBackground,
                       borderRadius: 16,
                       padding: 20,
                       borderWidth: 2,
                       borderColor:
-                        listingType === 'instant' ? '#EC4899' : 'transparent',
+                        listingType === 'instant' ? '#EC4899' : colors.borderColor,
                       opacity: pressed ? 0.8 : 1,
                     }}
                   >
@@ -369,10 +377,10 @@ export default function SellStep4Screen() {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text className="text-white text-lg font-bold mb-1">
+                        <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
                           Sell to Platform
                         </Text>
-                        <Text className="text-neutral-400 text-sm">
+                        <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                           Sell directly to PartPulse. Get paid instantly at a
                           guaranteed price.
                         </Text>
@@ -384,7 +392,7 @@ export default function SellStep4Screen() {
                           borderRadius: 12,
                           borderWidth: 2,
                           borderColor:
-                            listingType === 'instant' ? '#EC4899' : '#9CA3AF',
+                            listingType === 'instant' ? '#EC4899' : colors.secondaryTextColor,
                           backgroundColor:
                             listingType === 'instant' ? '#EC4899' : 'transparent',
                           justifyContent: 'center',
@@ -411,7 +419,7 @@ export default function SellStep4Screen() {
                       }}
                     >
                       <Ionicons name="flash-outline" size={16} color="#10B981" />
-                      <Text className="text-neutral-400 text-xs">
+                      <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
                         Instant payment • Guaranteed price • No negotiations
                       </Text>
                     </View>
@@ -433,7 +441,9 @@ export default function SellStep4Screen() {
             paddingRight: Math.max(insets.right, 24),
             paddingBottom: insets.bottom + 16,
             paddingTop: 16,
-            backgroundColor: '#0F0E11',
+            backgroundColor: colors.backgroundColor,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderColor,
           }}
         >
           <Pressable onPress={handlePublish} style={{ width: '100%' }}>
@@ -451,8 +461,8 @@ export default function SellStep4Screen() {
                   alignItems: 'center',
                 }}
               >
-                <Text className="text-white text-lg font-bold">
-                  Publish Listing
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
+                  {listingType === 'instant' ? 'Sell' : 'Publish Listing'}
                 </Text>
               </LinearGradient>
             )}

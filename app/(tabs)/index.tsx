@@ -6,7 +6,14 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Hardcoded username for now
@@ -31,6 +38,31 @@ export default function HomeScreen() {
   const colors = useThemeColors();
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+  
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const buttonsOpacity = useSharedValue(1);
+  const buttonsWidth = useSharedValue(56);
+  const buttonsMargin = useSharedValue(12);
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+    buttonsOpacity.value = withTiming(0, { duration: 200 });
+    buttonsWidth.value = withTiming(0, { duration: 200 });
+    buttonsMargin.value = withTiming(0, { duration: 200 });
+  };
+
+  const handleSearchBlur = () => {
+    setIsSearchFocused(false);
+    buttonsOpacity.value = withTiming(1, { duration: 200 });
+    buttonsWidth.value = withTiming(56, { duration: 200 });
+    buttonsMargin.value = withTiming(12, { duration: 200 });
+  };
+
+  const buttonsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: buttonsOpacity.value,
+    width: buttonsWidth.value,
+    marginLeft: buttonsMargin.value,
+  }));
 
   return (
     <View
@@ -102,16 +134,75 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search Bar */}
+        {/* Search Bar with Quick Access Buttons */}
         <View style={{ marginBottom: 32 }}>
-          <SearchBar />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <SearchBar onFocus={handleSearchFocus} onBlur={handleSearchBlur} />
+            </View>
+            
+            {/* Wishlist Button */}
+            <Animated.View style={buttonsAnimatedStyle}>
+              <Pressable
+                onPress={() => router.push('/(tabs)/wishlist')}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: colors.cardBackground,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#EC4899' + '30',
+                  overflow: 'hidden',
+                }}
+              >
+                <Ionicons name="heart-outline" size={24} color="#EC4899" />
+              </Pressable>
+            </Animated.View>
+
+            {/* Notifications Button */}
+            <Animated.View style={buttonsAnimatedStyle}>
+              <Pressable
+                onPress={() => router.push('/(tabs)/notifications')}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: colors.cardBackground,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#3B82F6' + '30',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <Ionicons name="notifications-outline" size={24} color="#3B82F6" />
+                {/* Unread indicator */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: '#EC4899',
+                    borderWidth: 2,
+                    borderColor: colors.cardBackground,
+                  }}
+                />
+              </Pressable>
+            </Animated.View>
+          </View>
         </View>
 
         {/* Recommended Items Section */}
         <View style={{ marginBottom: 32 }}>
           <SectionHeader
             title="Recommended for You"
-            onShowAllPress={() => router.push('/(tabs)/products')}
+            onShowAllPress={() => router.push('/(tabs)/market')}
           />
           <ScrollView
             horizontal
@@ -130,7 +221,7 @@ export default function HomeScreen() {
         <View>
           <SectionHeader
             title="Trending Products"
-            onShowAllPress={() => router.push('/(tabs)/products')}
+            onShowAllPress={() => router.push('/(tabs)/market')}
           />
           <View>
             {trendingProducts.map((product) => (

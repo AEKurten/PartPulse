@@ -6,18 +6,33 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 type SearchBarProps = {
   placeholder?: string;
   onSearchChange?: (query: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
 };
 
 export function SearchBar({
   placeholder = 'Search for parts...',
   onSearchChange,
+  onFocus,
+  onBlur,
 }: SearchBarProps) {
   const colors = useThemeColors();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleChange = (text: string) => {
     setSearchQuery(text);
     onSearchChange?.(text);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    onFocus?.();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    onBlur?.();
   };
 
   return (
@@ -36,13 +51,15 @@ export function SearchBar({
         placeholderTextColor={colors.secondaryTextColor}
         value={searchQuery}
         onChangeText={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         style={{
           flex: 1,
           fontSize: 16,
           color: colors.textColor,
         }}
       />
-      <Ionicons name="search" size={24} color="#D62F76" />
+      <Ionicons name="search-outline" size={24} color="#D62F76" />
     </View>
   );
 }

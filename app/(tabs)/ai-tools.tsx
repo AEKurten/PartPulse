@@ -27,6 +27,7 @@ const resolutions = [
 export default function AIToolsScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const [buildMode, setBuildMode] = useState<'new' | 'upgrade'>('new');
   const [budget, setBudget] = useState('');
   const [selectedBuildType, setSelectedBuildType] = useState<string | null>(null);
   const [selectedResolution, setSelectedResolution] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export default function AIToolsScreen() {
       router.push({
         pathname: '/ai-builder-results',
         params: {
+          buildMode,
           budget,
           buildType: selectedBuildType,
           resolution: resolutionValue,
@@ -107,10 +109,95 @@ export default function AIToolsScreen() {
           </View>
         </View>
 
+        {/* Build Mode Selection */}
+        <View style={{ marginBottom: 32 }}>
+          <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
+            Build Mode
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable
+              onPress={() => setBuildMode('new')}
+              style={{
+                flex: 1,
+                backgroundColor: buildMode === 'new' ? '#EC4899' + '20' : colors.cardBackground,
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 2,
+                borderColor: buildMode === 'new' ? '#EC4899' : colors.borderColor,
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={32}
+                color={buildMode === 'new' ? '#EC4899' : colors.secondaryTextColor}
+                style={{ marginBottom: 8 }}
+              />
+              <Text
+                style={{
+                  color: buildMode === 'new' ? '#EC4899' : colors.textColor,
+                  fontSize: 16,
+                  fontWeight: buildMode === 'new' ? '600' : '400',
+                  marginBottom: 4,
+                }}
+              >
+                New Build
+              </Text>
+              <Text
+                style={{
+                  color: colors.secondaryTextColor,
+                  fontSize: 12,
+                  textAlign: 'center',
+                }}
+              >
+                Create a complete new PC build
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setBuildMode('upgrade')}
+              style={{
+                flex: 1,
+                backgroundColor: buildMode === 'upgrade' ? '#EC4899' + '20' : colors.cardBackground,
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 2,
+                borderColor: buildMode === 'upgrade' ? '#EC4899' : colors.borderColor,
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons
+                name="arrow-up-circle-outline"
+                size={32}
+                color={buildMode === 'upgrade' ? '#EC4899' : colors.secondaryTextColor}
+                style={{ marginBottom: 8 }}
+              />
+              <Text
+                style={{
+                  color: buildMode === 'upgrade' ? '#EC4899' : colors.textColor,
+                  fontSize: 16,
+                  fontWeight: buildMode === 'upgrade' ? '600' : '400',
+                  marginBottom: 4,
+                }}
+              >
+                Upgrade Build
+              </Text>
+              <Text
+                style={{
+                  color: colors.secondaryTextColor,
+                  fontSize: 12,
+                  textAlign: 'center',
+                }}
+              >
+                Upgrade your current PC
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
         {/* Budget Input */}
         <View style={{ marginBottom: 32 }}>
           <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
-            Budget
+            {buildMode === 'upgrade' ? 'Upgrade Budget' : 'Budget'}
           </Text>
           <View
             style={{
@@ -128,7 +215,7 @@ export default function AIToolsScreen() {
             <TextInput
               value={budget}
               onChangeText={setBudget}
-              placeholder="Enter your budget"
+              placeholder={buildMode === 'upgrade' ? 'Enter upgrade budget' : 'Enter your budget'}
               placeholderTextColor={colors.secondaryTextColor}
               keyboardType="numeric"
               style={{
@@ -144,7 +231,7 @@ export default function AIToolsScreen() {
         {/* Build Type Selection */}
         <View style={{ marginBottom: 32 }}>
           <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
-            Build Type
+            {buildMode === 'upgrade' ? 'Upgrade Focus' : 'Build Type'}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             {buildTypes.map((type) => (
@@ -390,14 +477,14 @@ export default function AIToolsScreen() {
                 <>
                   <Ionicons name="hourglass-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
                   <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
-                    Generating Build...
+                    {buildMode === 'upgrade' ? 'Generating Upgrades...' : 'Generating Build...'}
                   </Text>
                 </>
               ) : (
                 <>
                   <Ionicons name="sparkles" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
                   <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
-                    Generate AI Build
+                    {buildMode === 'upgrade' ? 'Generate AI Upgrades' : 'Generate AI Build'}
                   </Text>
                 </>
               )}

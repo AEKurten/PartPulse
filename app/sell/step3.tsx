@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { StatusBar } from 'expo-status-bar';
 
 // Mock AI analysis data
 const aiAnalysis = {
@@ -27,6 +29,7 @@ const aiAnalysis = {
 
 export default function SellStep3Screen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAccept = () => {
@@ -68,9 +71,10 @@ export default function SellStep3Screen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: '#0F0E11' }}
+      style={{ flex: 1, backgroundColor: colors.backgroundColor }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
+      <StatusBar style={colors.statusBarStyle} />
       <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 140 }}
@@ -92,7 +96,7 @@ export default function SellStep3Screen() {
                 onPress={() => router.back()}
                 style={{ marginBottom: 24, alignSelf: 'flex-start' }}
               >
-                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                <Ionicons name="arrow-back" size={24} color={colors.textColor} />
               </Pressable>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <View
@@ -109,10 +113,10 @@ export default function SellStep3Screen() {
                   <Ionicons name="sparkles" size={24} color="#EC4899" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
+                  <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
                     AI Analysis Complete
                   </Text>
-                  <Text style={{ color: '#D1D5DB', fontSize: 14 }}>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                     Review the AI's assessment of your item
                   </Text>
                 </View>
@@ -122,10 +126,12 @@ export default function SellStep3Screen() {
             {/* AI Grade Card */}
             <View
               style={{
-                backgroundColor: '#2B2E36',
+                backgroundColor: colors.cardBackground,
                 borderRadius: 16,
                 padding: 24,
                 marginBottom: 24,
+                borderWidth: 1,
+                borderColor: colors.borderColor,
               }}
             >
               {/* Score Badge */}
@@ -135,7 +141,7 @@ export default function SellStep3Screen() {
                     width: 120,
                     height: 120,
                     borderRadius: 60,
-                    backgroundColor: '#1F2937',
+                    backgroundColor: colors.iconBackground,
                     justifyContent: 'center',
                     alignItems: 'center',
                     borderWidth: 4,
@@ -177,7 +183,7 @@ export default function SellStep3Screen() {
               {/* Recommended Price */}
               <View
                 style={{
-                  backgroundColor: '#1F2937',
+                  backgroundColor: colors.iconBackground,
                   borderRadius: 12,
                   padding: 16,
                   marginBottom: 24,
@@ -187,10 +193,10 @@ export default function SellStep3Screen() {
                 }}
               >
                 <View>
-                  <Text className="text-neutral-400 text-sm mb-1">
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 4 }}>
                     AI Recommended Price
                   </Text>
-                  <Text className="text-white text-2xl font-bold">
+                  <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
                     {aiAnalysis.recommendedPrice}
                   </Text>
                 </View>
@@ -199,7 +205,7 @@ export default function SellStep3Screen() {
 
               {/* Condition Assessment */}
               <View style={{ marginBottom: 24 }}>
-                <Text className="text-white text-lg font-semibold mb-3">
+                <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
                   Condition Assessment
                 </Text>
                 {aiAnalysis.details.map((detail, index) => (
@@ -211,14 +217,14 @@ export default function SellStep3Screen() {
                       alignItems: 'center',
                       paddingVertical: 12,
                       borderBottomWidth: index < aiAnalysis.details.length - 1 ? 1 : 0,
-                      borderBottomColor: '#1F2937',
+                      borderBottomColor: colors.borderColor,
                     }}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text className="text-neutral-400 text-sm">
+                      <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                         {detail.label}
                       </Text>
-                      <Text className="text-white text-base font-medium mt-1">
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500', marginTop: 4 }}>
                         {detail.value}
                       </Text>
                     </View>
@@ -246,7 +252,7 @@ export default function SellStep3Screen() {
 
               {/* Notes */}
               <View style={{ marginBottom: 16 }}>
-                <Text className="text-white text-lg font-semibold mb-3">
+                <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
                   AI Notes
                 </Text>
                 {aiAnalysis.notes.map((note, index) => (
@@ -264,7 +270,7 @@ export default function SellStep3Screen() {
                       color="#10B981"
                       style={{ marginRight: 8, marginTop: 2 }}
                     />
-                    <Text className="text-neutral-300 text-sm flex-1">
+                    <Text style={{ color: colors.textColor, fontSize: 14, flex: 1 }}>
                       {note}
                     </Text>
                   </View>
@@ -274,7 +280,7 @@ export default function SellStep3Screen() {
               {/* Disclaimer */}
               <View
                 style={{
-                  backgroundColor: '#1F2937',
+                  backgroundColor: colors.iconBackground,
                   borderRadius: 12,
                   padding: 16,
                   flexDirection: 'row',
@@ -284,11 +290,11 @@ export default function SellStep3Screen() {
                 <Ionicons
                   name="information-circle-outline"
                   size={20}
-                  color="#9CA3AF"
+                  color={colors.secondaryTextColor}
                   style={{ marginRight: 12, marginTop: 2 }}
                 />
-                <Text className="text-neutral-400 text-xs leading-5 flex-1">
-                  <Text className="font-semibold">Note:</Text> AI analysis is based on
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 12, lineHeight: 20, flex: 1 }}>
+                  <Text style={{ fontWeight: '600' }}>Note:</Text> AI analysis is based on
                   image recognition and may not catch all details. Please verify the
                   assessment matches your item's actual condition.
                 </Text>
@@ -308,7 +314,9 @@ export default function SellStep3Screen() {
             paddingRight: Math.max(insets.right, 24),
             paddingBottom: insets.bottom + 16,
             paddingTop: 16,
-            backgroundColor: '#0F0E11',
+            backgroundColor: colors.backgroundColor,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderColor,
             gap: 12,
           }}
         >
@@ -343,15 +351,15 @@ export default function SellStep3Screen() {
                   borderRadius: 16,
                   height: 56,
                   width: '100%',
-                  backgroundColor: '#2B2E36',
+                  backgroundColor: colors.cardBackground,
                   opacity: pressed ? 0.8 : 1,
                   justifyContent: 'center',
                   alignItems: 'center',
                   borderWidth: 1,
-                  borderColor: '#3B3E46',
+                  borderColor: colors.borderColor,
                 }}
               >
-                <Text className="text-white text-lg font-semibold">
+                <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600' }}>
                   Continue Without AI
                 </Text>
               </View>

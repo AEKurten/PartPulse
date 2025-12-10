@@ -102,7 +102,9 @@ export default function AIBuilderResultsScreen() {
   const params = useLocalSearchParams();
   const [selectedGame, setSelectedGame] = useState(games[0]);
   const [showGameDropdown, setShowGameDropdown] = useState(false);
+  const [isFPSExpanded, setIsFPSExpanded] = useState(false);
   
+  const buildMode = params.buildMode as string || 'new';
   const budget = params.budget as string || '2000';
   const buildType = params.buildType as string || 'gaming';
   const resolution = params.resolution as string || '2560x1440';
@@ -149,7 +151,7 @@ export default function AIBuilderResultsScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 2 }}>
-            Your AI Build
+            {buildMode === 'upgrade' ? 'Your AI Upgrades' : 'Your AI Build'}
           </Text>
           <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
             {buildTypeLabels[buildType] || 'Custom'} • {resolution}
@@ -177,245 +179,278 @@ export default function AIBuilderResultsScreen() {
           paddingBottom: Math.max(insets.bottom, 24) + 100,
         }}
       >
-        {/* FPS Performance Graph */}
-        <View
-          style={{
-            backgroundColor: colors.cardBackground,
-            borderRadius: 16,
-            padding: 20,
-            marginTop: 24,
-            marginBottom: 24,
-            borderWidth: 1,
-            borderColor: colors.borderColor,
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <View>
-              <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
-                Performance Preview
-              </Text>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-                Estimated FPS at {resolution}
-              </Text>
-            </View>
-            <View
-              style={{
-                backgroundColor: '#10B981' + '20',
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-              }}
-            >
-              <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '600' }}>
-                {gameFPSData[selectedGame]?.settings || 'Ultra'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Game Selector */}
-          <View style={{ marginBottom: 24, position: 'relative', zIndex: 10 }}>
-            <Pressable
-              onPress={() => setShowGameDropdown(!showGameDropdown)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: colors.backgroundColor,
-                borderRadius: 12,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: colors.borderColor,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Ionicons name="game-controller" size={20} color="#EC4899" style={{ marginRight: 12 }} />
-                <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', flex: 1 }}>
-                  {selectedGame}
-                </Text>
-              </View>
-              <Ionicons 
-                name={showGameDropdown ? 'chevron-up' : 'chevron-down'} 
-                size={20} 
-                color={colors.secondaryTextColor} 
-              />
-            </Pressable>
-
-            {/* Dropdown Menu */}
-            {showGameDropdown && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 60,
-                  left: 0,
-                  right: 0,
-                  backgroundColor: colors.cardBackground,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.borderColor,
-                  maxHeight: 300,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 8,
-                }}
-              >
-                <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 300 }}>
-                  {games.map((game) => (
-                    <Pressable
-                      key={game}
-                      onPress={() => {
-                        setSelectedGame(game);
-                        setShowGameDropdown(false);
-                      }}
-                      style={{
-                        padding: 16,
-                        borderBottomWidth: game !== games[games.length - 1] ? 1 : 0,
-                        borderBottomColor: colors.borderColor,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        backgroundColor: selectedGame === game ? colors.backgroundColor : 'transparent',
-                      }}
-                    >
-                      <Ionicons 
-                        name="game-controller-outline" 
-                        size={18} 
-                        color={selectedGame === game ? '#EC4899' : colors.secondaryTextColor} 
-                        style={{ marginRight: 12 }} 
-                      />
-                      <Text
-                        style={{
-                          color: selectedGame === game ? '#EC4899' : colors.textColor,
-                          fontSize: 15,
-                          fontWeight: selectedGame === game ? '600' : '400',
-                          flex: 1,
-                        }}
-                      >
-                        {game}
-                      </Text>
-                      <Text
-                        style={{
-                          color: colors.secondaryTextColor,
-                          fontSize: 12,
-                          marginLeft: 8,
-                        }}
-                      >
-                        {gameFPSData[game].fps} FPS
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          </View>
-
-          {/* FPS Graph */}
-          <View style={{ marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-                {Math.min(...Object.values(gameFPSData).map(d => d.fps))} FPS
-              </Text>
-              <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
-                {gameFPSData[selectedGame]?.fps || 0} FPS
-              </Text>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-                {Math.max(...Object.values(gameFPSData).map(d => d.fps))} FPS
-              </Text>
-            </View>
-
-            {/* Bar Chart */}
-            <View
-              style={{
-                height: 200,
-                flexDirection: 'row',
-                alignItems: 'flex-end',
-                justifyContent: 'space-between',
-                gap: 8,
-                marginBottom: 12,
-              }}
-            >
-              {games.map((game, index) => {
-                const gameData = gameFPSData[game];
-                const minFPS = Math.min(...Object.values(gameFPSData).map(d => d.fps));
-                const maxFPS = Math.max(...Object.values(gameFPSData).map(d => d.fps));
-                const fpsRange = maxFPS - minFPS;
-                const barHeight = fpsRange > 0 ? ((gameData.fps - minFPS) / fpsRange) * 180 : 90;
-                const isSelected = game === selectedGame;
-                
-                return (
-                  <Pressable
-                    key={game}
-                    onPress={() => {
-                      setSelectedGame(game);
-                      setShowGameDropdown(false);
-                    }}
-                    style={{ flex: 1, alignItems: 'center' }}
-                  >
-                    <View
-                      style={{
-                        width: '100%',
-                        height: Math.max(barHeight, 8),
-                        backgroundColor: isSelected ? '#EC4899' : colors.iconBackground,
-                        borderRadius: 8,
-                        borderWidth: isSelected ? 2 : 0,
-                        borderColor: '#EC4899',
-                        marginBottom: 4,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        color: isSelected ? '#EC4899' : colors.secondaryTextColor,
-                        fontSize: 9,
-                        textAlign: 'center',
-                        fontWeight: isSelected ? '600' : '400',
-                      }}
-                      numberOfLines={1}
-                    >
-                      {gameData.fps}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Performance Indicator */}
+        {/* FPS Performance Graph - Only show for gaming builds */}
+        {buildType === 'gaming' && (
           <View
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingTop: 16,
-              borderTopWidth: 1,
-              borderTopColor: colors.borderColor,
+              backgroundColor: colors.cardBackground,
+              borderRadius: 16,
+              padding: 20,
+              marginTop: 24,
+              marginBottom: 24,
+              borderWidth: 1,
+              borderColor: colors.borderColor,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="speedometer" size={18} color="#EC4899" style={{ marginRight: 8 }} />
-              <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }}>
-                Performance Level
-              </Text>
-            </View>
-            <View
-              style={{
-                backgroundColor: (gameFPSData[selectedGame]?.fps || 0) >= 100 ? '#10B981' + '20' : (gameFPSData[selectedGame]?.fps || 0) >= 60 ? '#F97316' + '20' : '#EF4444' + '20',
-                borderRadius: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-              }}
+            {/* Collapsible Header */}
+            <Pressable
+              onPress={() => setIsFPSExpanded(!isFPSExpanded)}
+              style={{ marginBottom: isFPSExpanded ? 20 : 0 }}
             >
-              <Text
-                style={{
-                  color: (gameFPSData[selectedGame]?.fps || 0) >= 100 ? '#10B981' : (gameFPSData[selectedGame]?.fps || 0) >= 60 ? '#F97316' : '#EF4444',
-                  fontSize: 12,
-                  fontWeight: '600',
-                }}
-              >
-                {(gameFPSData[selectedGame]?.fps || 0) >= 100 ? 'Excellent' : (gameFPSData[selectedGame]?.fps || 0) >= 60 ? 'Good' : 'Playable'}
-              </Text>
-            </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
+                    Performance Preview
+                  </Text>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
+                    Estimated FPS at {resolution}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  {!isFPSExpanded && (
+                    <View>
+                      <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', textAlign: 'right' }}>
+                        {gameFPSData[selectedGame]?.fps || 0} FPS
+                      </Text>
+                      <Text style={{ color: colors.secondaryTextColor, fontSize: 11, textAlign: 'right' }}>
+                        {selectedGame}
+                      </Text>
+                    </View>
+                  )}
+                  <Ionicons 
+                    name={isFPSExpanded ? 'chevron-up' : 'chevron-down'} 
+                    size={20} 
+                    color={colors.secondaryTextColor} 
+                  />
+                </View>
+              </View>
+            </Pressable>
+
+            {/* Expanded Content */}
+            {isFPSExpanded && (
+              <>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <View
+                    style={{
+                      backgroundColor: '#10B981' + '20',
+                      borderRadius: 8,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '600' }}>
+                      {gameFPSData[selectedGame]?.settings || 'Ultra'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Game Selector */}
+                <View style={{ marginBottom: 24, position: 'relative', zIndex: 10 }}>
+                  <Pressable
+                    onPress={() => setShowGameDropdown(!showGameDropdown)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: colors.backgroundColor,
+                      borderRadius: 12,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: colors.borderColor,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <Ionicons name="game-controller" size={20} color="#EC4899" style={{ marginRight: 12 }} />
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', flex: 1 }}>
+                        {selectedGame}
+                      </Text>
+                    </View>
+                    <Ionicons 
+                      name={showGameDropdown ? 'chevron-up' : 'chevron-down'} 
+                      size={20} 
+                      color={colors.secondaryTextColor} 
+                    />
+                  </Pressable>
+
+                  {/* Dropdown Menu */}
+                  {showGameDropdown && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 60,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: colors.cardBackground,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: colors.borderColor,
+                        maxHeight: 300,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 8,
+                      }}
+                    >
+                      <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 300 }}>
+                        {games.map((game) => (
+                          <Pressable
+                            key={game}
+                            onPress={() => {
+                              setSelectedGame(game);
+                              setShowGameDropdown(false);
+                            }}
+                            style={{
+                              padding: 16,
+                              borderBottomWidth: game !== games[games.length - 1] ? 1 : 0,
+                              borderBottomColor: colors.borderColor,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: selectedGame === game ? colors.backgroundColor : 'transparent',
+                            }}
+                          >
+                            <Ionicons 
+                              name="game-controller-outline" 
+                              size={18} 
+                              color={selectedGame === game ? '#EC4899' : colors.secondaryTextColor} 
+                              style={{ marginRight: 12 }} 
+                            />
+                            <Text
+                              style={{
+                                color: selectedGame === game ? '#EC4899' : colors.textColor,
+                                fontSize: 15,
+                                fontWeight: selectedGame === game ? '600' : '400',
+                                flex: 1,
+                              }}
+                            >
+                              {game}
+                            </Text>
+                            <Text
+                              style={{
+                                color: colors.secondaryTextColor,
+                                fontSize: 12,
+                                marginLeft: 8,
+                              }}
+                            >
+                              {gameFPSData[game].fps} FPS
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                {/* FPS Graph */}
+                <View style={{ marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
+                      {Math.min(...Object.values(gameFPSData).map(d => d.fps))} FPS
+                    </Text>
+                    <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
+                      {gameFPSData[selectedGame]?.fps || 0} FPS
+                    </Text>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
+                      {Math.max(...Object.values(gameFPSData).map(d => d.fps))} FPS
+                    </Text>
+                  </View>
+
+                  {/* Bar Chart */}
+                  <View
+                    style={{
+                      height: 200,
+                      flexDirection: 'row',
+                      alignItems: 'flex-end',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      marginBottom: 12,
+                    }}
+                  >
+                    {games.map((game, index) => {
+                      const gameData = gameFPSData[game];
+                      const minFPS = Math.min(...Object.values(gameFPSData).map(d => d.fps));
+                      const maxFPS = Math.max(...Object.values(gameFPSData).map(d => d.fps));
+                      const fpsRange = maxFPS - minFPS;
+                      const barHeight = fpsRange > 0 ? ((gameData.fps - minFPS) / fpsRange) * 180 : 90;
+                      const isSelected = game === selectedGame;
+                      
+                      return (
+                        <Pressable
+                          key={game}
+                          onPress={() => {
+                            setSelectedGame(game);
+                            setShowGameDropdown(false);
+                          }}
+                          style={{ flex: 1, alignItems: 'center' }}
+                        >
+                          <View
+                            style={{
+                              width: '100%',
+                              height: Math.max(barHeight, 8),
+                              backgroundColor: isSelected ? '#EC4899' : colors.iconBackground,
+                              borderRadius: 8,
+                              borderWidth: isSelected ? 2 : 0,
+                              borderColor: '#EC4899',
+                              marginBottom: 4,
+                            }}
+                          />
+                          <Text
+                            style={{
+                              color: isSelected ? '#EC4899' : colors.secondaryTextColor,
+                              fontSize: 9,
+                              textAlign: 'center',
+                              fontWeight: isSelected ? '600' : '400',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {gameData.fps}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Performance Indicator */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: 16,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.borderColor,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="speedometer" size={18} color="#EC4899" style={{ marginRight: 8 }} />
+                    <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }}>
+                      Performance Level
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      backgroundColor: (gameFPSData[selectedGame]?.fps || 0) >= 100 ? '#10B981' + '20' : (gameFPSData[selectedGame]?.fps || 0) >= 60 ? '#F97316' + '20' : '#EF4444' + '20',
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: (gameFPSData[selectedGame]?.fps || 0) >= 100 ? '#10B981' : (gameFPSData[selectedGame]?.fps || 0) >= 60 ? '#F97316' : '#EF4444',
+                        fontSize: 12,
+                        fontWeight: '600',
+                      }}
+                    >
+                      {(gameFPSData[selectedGame]?.fps || 0) >= 100 ? 'Excellent' : (gameFPSData[selectedGame]?.fps || 0) >= 60 ? 'Good' : 'Playable'}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
-        </View>
+        )}
 
         {/* Summary Card */}
         <View
@@ -431,7 +466,7 @@ export default function AIBuilderResultsScreen() {
         >
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold' }}>
-              Build Summary
+              {buildMode === 'upgrade' ? 'Upgrade Summary' : 'Build Summary'}
             </Text>
             <View
               style={{
@@ -450,7 +485,7 @@ export default function AIBuilderResultsScreen() {
           <View style={{ gap: 12 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                Budget
+                {buildMode === 'upgrade' ? 'Upgrade Budget' : 'Budget'}
               </Text>
               <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }}>
                 ${parseInt(budget).toLocaleString()}
@@ -458,23 +493,25 @@ export default function AIBuilderResultsScreen() {
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                Total Cost
+                {buildMode === 'upgrade' ? 'Upgrade Cost' : 'Total Cost'}
               </Text>
               <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }}>
                 ${buildResults.totalPrice.toFixed(2)}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                Remaining
-              </Text>
-              <Text style={{ color: '#10B981', fontSize: 14, fontWeight: '600' }}>
-                ${(parseInt(budget) - buildResults.totalPrice).toFixed(2)}
-              </Text>
-            </View>
+            {buildMode === 'new' && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                  Remaining
+                </Text>
+                <Text style={{ color: '#10B981', fontSize: 14, fontWeight: '600' }}>
+                  ${(parseInt(budget) - buildResults.totalPrice).toFixed(2)}
+                </Text>
+              </View>
+            )}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
               <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                Parts Found Locally
+                {buildMode === 'upgrade' ? 'Upgrades Found Locally' : 'Parts Found Locally'}
               </Text>
               <Text style={{ color: '#EC4899', fontSize: 14, fontWeight: '600' }}>
                 {buildResults.parts.filter(p => p.localSeller).length} / {buildResults.parts.length}
@@ -486,7 +523,7 @@ export default function AIBuilderResultsScreen() {
         {/* Parts List */}
         <View style={{ marginBottom: 24 }}>
           <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
-            Recommended Parts
+            {buildMode === 'upgrade' ? 'Recommended Upgrades' : 'Recommended Parts'}
           </Text>
           
           <View style={{ gap: 16 }}>
@@ -586,10 +623,12 @@ export default function AIBuilderResultsScreen() {
             </Text>
           </View>
           <Text style={{ color: colors.secondaryTextColor, fontSize: 14, lineHeight: 20 }}>
-            This build is optimized for {buildTypeLabels[buildType]?.toLowerCase() || 'your'} use case at {resolution} resolution. 
-            All parts are compatible and selected to maximize performance within your budget. 
+            {buildMode === 'upgrade' 
+              ? `These upgrades are optimized for ${buildTypeLabels[buildType]?.toLowerCase() || 'your'} use case at ${resolution} resolution. All recommended parts are compatible with your current build and selected to maximize performance improvements within your budget.`
+              : `This build is optimized for ${buildTypeLabels[buildType]?.toLowerCase() || 'your'} use case at ${resolution} resolution. All parts are compatible and selected to maximize performance within your budget.`
+            }
             {buildResults.parts.filter(p => p.localSeller).length > 0 && 
-              ` ${buildResults.parts.filter(p => p.localSeller).length} parts are available from local sellers within ${radius} miles.`
+              ` ${buildResults.parts.filter(p => p.localSeller).length} ${buildMode === 'upgrade' ? 'upgrades' : 'parts'} are available from local sellers within ${radius} miles.`
             }
           </Text>
         </View>
@@ -627,7 +666,7 @@ export default function AIBuilderResultsScreen() {
           }}
         >
           <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
-            Edit Build
+            {buildMode === 'upgrade' ? 'Edit Upgrades' : 'Edit Build'}
           </Text>
         </Pressable>
         
@@ -653,7 +692,7 @@ export default function AIBuilderResultsScreen() {
               }}
             >
               <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
-                Save Build
+                {buildMode === 'upgrade' ? 'Save Upgrades' : 'Save Build'}
               </Text>
             </LinearGradient>
           )}

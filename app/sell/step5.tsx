@@ -14,6 +14,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { StatusBar } from 'expo-status-bar';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -34,6 +36,7 @@ const generateConfetti = () => {
 
 export default function SellStep5Screen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [confetti, setConfetti] = useState(generateConfetti());
 
   // Checkmark animation
@@ -121,8 +124,9 @@ export default function SellStep5Screen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: '#0F0E11' }}
+      style={{ flex: 1, backgroundColor: colors.backgroundColor }}
     >
+      <StatusBar style={colors.statusBarStyle} />
       <View style={{ flex: 1 }}>
         {/* Confetti */}
         {confetti.map((piece) => (
@@ -164,14 +168,14 @@ export default function SellStep5Screen() {
 
           {/* Title */}
           <Animated.View style={titleAnimatedStyle}>
-            <Text className="text-4xl font-bold text-white text-center mb-4">
+            <Text style={{ color: colors.textColor, fontSize: 36, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>
               Congratulations! 🎉
             </Text>
           </Animated.View>
 
           {/* Subtitle */}
           <Animated.View style={subtitleAnimatedStyle}>
-            <Text className="text-xl text-neutral-400 text-center mb-12">
+            <Text style={{ color: colors.secondaryTextColor, fontSize: 20, textAlign: 'center', marginBottom: 48 }}>
               Your item is now live on the marketplace
             </Text>
           </Animated.View>

@@ -5,16 +5,20 @@ import { Platform, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { TabBarIcon } from '@/components/tab-bar-icon';
+import { useTheme } from '@/contexts/theme-context';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 
 export default function TabLayout() {
+  const { actualTheme } = useTheme();
+  const colors = useThemeColors();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: actualTheme === 'dark' ? '#FFFFFF' : '#111827',
+        tabBarInactiveTintColor: actualTheme === 'dark' ? '#9CA3AF' : '#6B7280',
         tabBarStyle: {
           height: 96,
           borderRadius: 24,
@@ -22,14 +26,14 @@ export default function TabLayout() {
           elevation: 0,
           shadowOpacity: 0,
           paddingHorizontal: 8,
-          
+          backgroundColor: Platform.OS === 'android' ? colors.cardBackground : undefined,
         },
         tabBarBackground: () => (
           Platform.OS === 'ios' ? (
             <BlurView
               intensity={80}
               style={StyleSheet.absoluteFill}
-              tint="dark"
+              tint={actualTheme === 'dark' ? 'dark' : 'light'}
             />
           ) : null
         ),
@@ -88,6 +92,18 @@ export default function TabLayout() {
         name="search"
         options={{
           href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          href: null, // Hide from tab bar but keep accessible
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null, // Hide from tab bar but keep accessible
         }}
       />
     </Tabs>

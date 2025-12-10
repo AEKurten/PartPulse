@@ -84,6 +84,7 @@ export function TrendingProductCard({
                       paddingVertical: 4,
                       flexDirection: 'row',
                       alignItems: 'center',
+                      marginLeft: 8,
                     }}
                   >
                     <Ionicons name="sparkles" size={12} color="#FFFFFF" />
