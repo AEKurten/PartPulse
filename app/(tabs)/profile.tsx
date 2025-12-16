@@ -1,18 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useState, useEffect } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/contexts/theme-context';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { supabase } from '@/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useProfileStore } from '../stores/userProfileStore';
 
 // Mock user data
 const USER_DATA = {
-  name: 'Alex',
-  email: 'alex@example.com',
+  name: useProfileStore.getState().username || 'User',
+  email: useAuthStore.getState().session?.user.email || 'add email',
   avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&q=80',
 };
 
@@ -66,6 +69,21 @@ export default function ProfileScreen() {
       params: { rigSpecs: JSON.stringify(rigSpecs) },
     });
   };
+
+  const handleLogoutPress = async () => {
+    const setSession = useAuthStore.getState().setSession;
+    const setUserDetails = useProfileStore.getState().setUserDetails;
+
+    const { error } = await supabase.auth.signOut();
+
+    if (!error) {
+      setSession(null);
+      setUserDetails(null);
+      router.push('/auth/login');
+    } else {
+      console.error('Error signing out:', error.message);
+    }
+  }
 
   const colors = useThemeColors();
   const backgroundColor = colors.backgroundColor;
@@ -326,7 +344,7 @@ export default function ProfileScreen() {
                     Cancel
                   </Text>
                 </Pressable>
-                <Pressable 
+                <Pressable
                   onPress={handleSaveRigSpecs}
                   style={{ paddingVertical: 8, paddingHorizontal: 4 }}
                 >
@@ -1152,7 +1170,7 @@ export default function ProfileScreen() {
                 // Handle logout
                 Alert.alert('Logout', 'Are you sure you want to logout?', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Logout', style: 'destructive', onPress: () => router.push('/auth/login') },
+                  { text: 'Logout', style: 'destructive', onPress: () => handleLogoutPress() },
                 ]);
               }}
               style={{

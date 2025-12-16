@@ -1,8 +1,10 @@
+import { signIn } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
@@ -12,6 +14,33 @@ export default function LoginScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const navigation = useRouter();
+
+  const handleSignIn = async () => {
+    try {
+      const { user, session, error } = await signIn({ email, password });
+
+      if (error) {
+        console.error('Login error:', error);
+        Alert.alert('Login Failed', error);
+        return;
+      }
+
+      console.log('Logged in user:', user);
+      console.log('Session data:', session);
+
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          navigation.replace('/(tabs)');
+        }
+      });
+    }
+    catch (error) {
+      console.error('Login failed:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -115,29 +144,28 @@ export default function LoginScreen() {
             </View>
 
             {/* Login Button */}
-            <Link href="/(tabs)" asChild>
-              <Pressable style={{ width: '100%' }}>
-                {({ pressed }) => (
-                  <LinearGradient
-                    colors={["#EC4899", "#F97316"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={{
-                      borderRadius: 16,
-                      height: 56,
-                      width: '100%',
-                      opacity: pressed ? 0.8 : 1,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Text className="text-white text-lg font-bold">
-                      Login
-                    </Text>
-                  </LinearGradient>
-                )}
-              </Pressable>
-            </Link>
+            <Pressable style={{ width: '100%' }} onPress={handleSignIn}>
+              {({ pressed }) => (
+                <LinearGradient
+                  colors={["#EC4899", "#F97316"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    borderRadius: 16,
+                    height: 56,
+                    width: '100%',
+                    opacity: pressed ? 0.8 : 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text className="text-white text-lg font-bold">
+                    Login
+                  </Text>
+                </LinearGradient>
+              )}
+            </Pressable>
+
           </View>
 
 

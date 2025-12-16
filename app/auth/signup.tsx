@@ -1,8 +1,9 @@
+import { signUp } from '@/lib/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SignUpScreen() {
@@ -14,6 +15,73 @@ export default function SignUpScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const navigation = useRouter();
+
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.toLowerCase());
+  };
+
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+
+    if (!text) {
+      setEmailError('');
+    } else if (!isValidEmail(text)) {
+      setEmailError('Enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    if (!username.trim()) {
+      Alert.alert('Username required');
+      return;
+    }
+
+    if (!email || emailError) {
+      Alert.alert('Enter a valid email');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      const { error } = await signUp({
+        email,
+        password,
+        username,
+      });
+
+      if (error) {
+        Alert.alert('Sign up failed', error.message);
+        return;
+      }
+
+      Alert.alert(
+        'Check your email',
+        'We sent you a confirmation link. Please verify your email before logging in.'
+      );
+
+      navigation.replace('/auth/login');
+    } catch (error) {
+      console.error('Sign up failed:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+    finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -76,7 +144,7 @@ export default function SignUpScreen() {
               placeholder="Email"
               placeholderTextColor="#9CA3AF"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleEmailChange}
               onFocus={() => setEmailFocused(true)}
               onBlur={() => setEmailFocused(false)}
               keyboardType="email-address"
@@ -93,6 +161,11 @@ export default function SignUpScreen() {
                 borderColor: emailFocused ? '#EC4899' : 'transparent',
               }}
             />
+            {emailError ? (
+              <Text className='mt-2 text-red-400'>
+                {emailError}
+              </Text>
+            ) : null}
           </View>
 
           {/* Password Input */}
@@ -139,29 +212,27 @@ export default function SignUpScreen() {
           </View>
 
           {/* Sign Up Button */}
-          <Link href="/(tabs)" asChild>
-            <Pressable style={{ width: '100%', marginBottom: 24 }}>
-              {({ pressed }) => (
-                <LinearGradient
-                  colors={["#EC4899", "#F97316"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    borderRadius: 16,
-                    height: 56,
-                    width: '100%',
-                    opacity: pressed ? 0.8 : 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text className="text-white text-lg font-bold">
-                    Create Account
-                  </Text>
-                </LinearGradient>
-              )}
-            </Pressable>
-          </Link>
+          <Pressable style={{ width: '100%', marginBottom: 24 }} onPress={handleSignUp}>
+            {({ pressed }) => (
+              <LinearGradient
+                colors={["#EC4899", "#F97316"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 16,
+                  height: 56,
+                  width: '100%',
+                  opacity: pressed ? 0.8 : 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                {!isLoading ? <Text className="text-white text-lg font-bold">
+                  Create Account
+                </Text> : <ActivityIndicator size="small" color="#FFFFFF" />}
+              </LinearGradient>
+            )}
+          </Pressable>
 
           {/* Divider */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>

@@ -1,3 +1,5 @@
+import SubscriptionPaywall from '@/app/subscription-paywall';
+import { useSubscription } from '@/contexts/subscription-context';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,8 +8,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSubscription } from '@/contexts/subscription-context';
-import SubscriptionPaywall from '@/app/subscription-paywall';
 
 const buildTypes = [
   { id: 'gaming', label: 'Gaming', icon: 'game-controller-outline', description: 'High-performance gaming rig' },
@@ -107,12 +107,6 @@ export default function AIToolsScreen() {
 
   const canGenerate = budget && selectedBuildType && selectedResolution && radius && 
     (selectedResolution !== 'custom' || customResolution);
-
-  const usagePercentage = getUsagePercentage(buildMode);
-  const limit = buildMode === 'new' ? subscription.features.aiBuildsPerMonth : subscription.features.aiUpgradesPerMonth;
-  const used = buildMode === 'new' ? subscription.usage.aiBuildsUsed : subscription.usage.aiUpgradesUsed;
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [isFirstUse, setIsFirstUse] = useState(false);
 
   return (
     <KeyboardAvoidingView

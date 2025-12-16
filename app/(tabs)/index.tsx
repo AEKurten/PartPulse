@@ -1,8 +1,9 @@
+import SubscriptionPaywall from '@/app/subscription-paywall';
+import { AdBanner } from '@/components/ad-banner';
 import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingProductCard } from '@/components/trending-product-card';
-import { AdBanner } from '@/components/ad-banner';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -12,14 +13,13 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
+  withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import SubscriptionPaywall from '@/app/subscription-paywall';
+import { useProfileStore } from '../stores/userProfileStore';
 
 // Hardcoded username for now
-const USERNAME = 'Alex';
+const USERNAME = useProfileStore.getState().username || 'User';
 
 // Mock product data with Unsplash images
 const recommendedProducts = [

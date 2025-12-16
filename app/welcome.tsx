@@ -127,7 +127,7 @@ export default function WelcomeScreen() {
         }}
       >
         <Pressable
-          onPress={() => router.push('/(tabs)')}
+          onPress={() => router.push('/auth/signup')}
         >
           {({ pressed }) => (
             <Text

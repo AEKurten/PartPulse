@@ -9,8 +9,9 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../global.css';
 
-import { ThemeProvider, useTheme } from '@/contexts/theme-context';
 import { SubscriptionProvider } from '@/contexts/subscription-context';
+import { ThemeProvider, useTheme } from '@/contexts/theme-context';
+import { supabase } from '@/lib/supabase';
 import {
   Poppins_100Thin,
   Poppins_200ExtraLight,
@@ -22,6 +23,9 @@ import {
   Poppins_800ExtraBold,
   Poppins_900Black,
 } from '@expo-google-fonts/poppins';
+import { useAuthStore } from './stores/useAuthStore';
+import { useProfileStore } from './stores/userProfileStore';
+
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 preventAutoHideAsync();
@@ -85,6 +89,59 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
+  const setSession = useAuthStore((state) => state.setSession);
+  const setUserDetails = useProfileStore((state) => state.setUserDetails);
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    // Get initial session on mount
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+    };
+
+    getSession();
+
+    // Listen for auth changes all the time
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [setSession]);
+
+  useEffect(() => {
+    // When user changes (login/logout), fetch profile
+    const fetchProfile = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching profile:', error.message);
+            setUserDetails(null);
+          } else {
+            setUserDetails(data);
+          }
+        } catch (err) {
+          console.error('Unexpected error fetching profile:', err);
+          setUserDetails(null);
+        }
+      } else {
+        // If no user, clear profile data
+        setUserDetails(null);
+      }
+    };
+
+    fetchProfile();
+  }, [user, setUserDetails]);
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>

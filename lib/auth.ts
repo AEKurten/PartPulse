@@ -2,14 +2,13 @@
  * Authentication utility functions
  */
 
-import { supabase } from './supabase';
 import { createProfile } from './database';
+import { supabase } from './supabase';
 
 export interface SignUpData {
   email: string;
   password: string;
   username: string;
-  full_name?: string;
 }
 
 export interface SignInData {
@@ -37,7 +36,6 @@ export async function signUp(data: SignUpData) {
     const profile = await createProfile({
       id: authData.user.id,
       username: data.username,
-      full_name: data.full_name || null,
     });
 
     return { user: authData.user, profile, error: null };
@@ -116,7 +114,7 @@ export async function getCurrentSession() {
 
 // Listen to auth state changes
 export function onAuthStateChange(callback: (user: any) => void) {
-  return supabase.auth.onAuthStateChange((_event, session) => {
+  return supabase.auth.onAuthStateChange((_event : any, session : any) => {
     callback(session?.user ?? null);
   });
 }
