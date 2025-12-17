@@ -1,5 +1,4 @@
 import { signIn } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
@@ -14,27 +13,18 @@ export default function LoginScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   const navigation = useRouter();
 
   const handleSignIn = async () => {
     try {
-      const { user, session, error } = await signIn({ email, password });
+      const { error } = await signIn({ email, password });
 
       if (error) {
-        console.error('Login error:', error);
         Alert.alert('Login Failed', error);
         return;
       }
 
-      console.log('Logged in user:', user);
-      console.log('Session data:', session);
-
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          navigation.replace('/(tabs)');
-        }
-      });
+      navigation.replace('/(tabs)');
     }
     catch (error) {
       console.error('Login failed:', error);

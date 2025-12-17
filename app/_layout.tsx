@@ -90,7 +90,8 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   const setSession = useAuthStore((state) => state.setSession);
-  const setUserDetails = useProfileStore((state) => state.setUserDetails);
+  const setUserDetails = useProfileStore((s) => s.setUserDetails);
+  const setLoading = useProfileStore((s) => s.setLoading);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -104,6 +105,7 @@ export default function RootLayout() {
 
     // Listen for auth changes all the time
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state changed:', _event, session);
       setSession(session);
     });
 
@@ -113,34 +115,31 @@ export default function RootLayout() {
   }, [setSession]);
 
   useEffect(() => {
-    // When user changes (login/logout), fetch profile
     const fetchProfile = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (error) {
-            console.error('Error fetching profile:', error.message);
-            setUserDetails(null);
-          } else {
-            setUserDetails(data);
-          }
-        } catch (err) {
-          console.error('Unexpected error fetching profile:', err);
-          setUserDetails(null);
-        }
-      } else {
-        // If no user, clear profile data
+      if (!user) {
         setUserDetails(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Profile fetch error:', error.message);
+        setUserDetails(null);
+      } else {
+        setUserDetails(data);
       }
     };
 
     fetchProfile();
-  }, [user, setUserDetails]);
+  }, [user]);
 
   return (
     <SafeAreaProvider>

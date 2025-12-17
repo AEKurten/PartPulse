@@ -16,17 +16,14 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProfileStore } from '../stores/userProfileStore';
-
-// Hardcoded username for now
-const USERNAME = useProfileStore.getState().username || 'User';
+import { useUserData } from '../Helpers/UserDetailsHelper';
 
 // Mock product data with Unsplash images
 const recommendedProducts = [
-  { id: 1, name: 'RTX 4090', price: '$1,599', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-  { id: 2, name: 'Ryzen 9 7950X', price: '$549', condition: 'B', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80' },
-  { id: 3, name: '32GB DDR5 RAM', price: '$199', condition: 'A', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
-  { id: 4, name: '1TB NVMe SSD', price: '$89', condition: 'C', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
+  { id: "1", name: 'RTX 4090', price: '$1,599', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
+  { id: "2", name: 'Ryzen 9 7950X', price: '$549', condition: 'B', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80' },
+  { id: "3", name: '32GB DDR5 RAM', price: '$199', condition: 'A', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
+  { id: "4", name: '1TB NVMe SSD', price: '$89', condition: 'C', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
 ];
 
 const trendingProducts = [
@@ -40,7 +37,7 @@ export default function HomeScreen() {
   const colors = useThemeColors();
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
-  
+
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const buttonsOpacity = useSharedValue(1);
@@ -66,6 +63,8 @@ export default function HomeScreen() {
     width: buttonsWidth.value,
     marginLeft: buttonsMargin.value,
   }));
+
+  const USERNAME = useUserData()?.name || 'User';
 
   return (
     <View
@@ -143,7 +142,7 @@ export default function HomeScreen() {
             <View style={{ flex: 1 }}>
               <SearchBar onFocus={handleSearchFocus} onBlur={handleSearchBlur} />
             </View>
-            
+
             {/* Wishlist Button */}
             <Animated.View style={buttonsAnimatedStyle}>
               <Pressable

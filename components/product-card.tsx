@@ -5,14 +5,14 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 type ProductCardProps = {
-  id: number;
+  id: string;
   name: string;
   price: string;
   condition: string;
   image: string;
   rating?: number;
   onPress?: () => void;
-  onWishlistPress?: (id: number, isWishlisted: boolean) => void;
+  onWishlistPress?: (productId: string, isWishlisted: boolean) => void;
   isWishlisted?: boolean;
 };
 
@@ -91,32 +91,32 @@ export function ProductCard({ id, name, price, condition, image, rating, onPress
             </Text>
             <View
               style={{
-                backgroundColor: 
+                backgroundColor:
                   condition.includes('A+') ? '#10B981' + '20' :
-                  condition.includes('A ') || condition === 'A' ? '#3B82F6' + '20' :
-                  condition.includes('B ') || condition === 'B' ? '#F59E0B' + '20' :
-                  condition.includes('C ') || condition === 'C' ? '#F97316' + '20' :
-                  '#EF4444' + '20',
+                    condition.includes('A ') || condition === 'A' ? '#3B82F6' + '20' :
+                      condition.includes('B ') || condition === 'B' ? '#F59E0B' + '20' :
+                        condition.includes('C ') || condition === 'C' ? '#F97316' + '20' :
+                          '#EF4444' + '20',
                 borderRadius: 8,
                 paddingHorizontal: 8,
                 paddingVertical: 5,
                 borderWidth: 1.5,
                 borderColor:
                   condition.includes('A+') ? '#10B981' :
-                  condition.includes('A ') || condition === 'A' ? '#3B82F6' :
-                  condition.includes('B ') || condition === 'B' ? '#F59E0B' :
-                  condition.includes('C ') || condition === 'C' ? '#F97316' :
-                  '#EF4444',
+                    condition.includes('A ') || condition === 'A' ? '#3B82F6' :
+                      condition.includes('B ') || condition === 'B' ? '#F59E0B' :
+                        condition.includes('C ') || condition === 'C' ? '#F97316' :
+                          '#EF4444',
               }}
             >
-              <Text 
-                style={{ 
+              <Text
+                style={{
                   color:
                     condition.includes('A+') ? '#10B981' :
-                    condition.includes('A ') || condition === 'A' ? '#3B82F6' :
-                    condition.includes('B ') || condition === 'B' ? '#F59E0B' :
-                    condition.includes('C ') || condition === 'C' ? '#F97316' :
-                    '#EF4444',
+                      condition.includes('A ') || condition === 'A' ? '#3B82F6' :
+                        condition.includes('B ') || condition === 'B' ? '#F59E0B' :
+                          condition.includes('C ') || condition === 'C' ? '#F97316' :
+                            '#EF4444',
                   fontSize: 12,
                   fontWeight: '700',
                 }}

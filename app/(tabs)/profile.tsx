@@ -9,15 +9,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useUserData } from '../Helpers/UserDetailsHelper';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useProfileStore } from '../stores/userProfileStore';
 
-// Mock user data
-const USER_DATA = {
-  name: useProfileStore.getState().username || 'User',
-  email: useAuthStore.getState().session?.user.email || 'add email',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&q=80',
-};
 
 // Mock rig specs
 const DEFAULT_RIG_SPECS = {
@@ -32,9 +27,12 @@ const DEFAULT_RIG_SPECS = {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { theme, actualTheme, setTheme } = useTheme();
+  const { actualTheme, setTheme } = useTheme();
   const [rigSpecs, setRigSpecs] = useState(DEFAULT_RIG_SPECS);
   const [isEditingRig, setIsEditingRig] = useState(false);
+
+  //userdata
+  const USER_DATA = useUserData();
 
   useEffect(() => {
     // Load saved rig specs
@@ -163,17 +161,17 @@ export default function ProfileScreen() {
             }}
           >
             <Image
-              source={{ uri: USER_DATA.avatar }}
+              source={{ uri: USER_DATA?.avatar }}
               style={{ width: '100%', height: '100%' }}
               contentFit="cover"
             />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
-              {USER_DATA.name}
+              {USER_DATA?.name}
             </Text>
             <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
-              {USER_DATA.email}
+              {USER_DATA?.email}
             </Text>
             <Pressable
               onPress={() => {

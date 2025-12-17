@@ -6,16 +6,18 @@ import { FloatingActionButton } from "@/components/floating-action-button";
 import { ProductCard } from "@/components/product-card";
 import { SearchWithFilters } from "@/components/search-with-filters";
 import { useThemeColors } from "@/hooks/use-theme-colors";
+import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuthStore } from "../stores/useAuthStore";
 
 // Mock product data - in real app this would come from database
 interface Product {
-  id: number;
+  id: string;
   name: string;
   price: string;
   priceValue: number;
@@ -28,7 +30,7 @@ interface Product {
 
 const allProducts: Product[] = [
   {
-    id: 1,
+    id: "1",
     name: "RTX 4090",
     price: "$1,599",
     priceValue: 1599,
@@ -40,7 +42,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-15"),
   },
   {
-    id: 2,
+    id: "2",
     name: "Ryzen 9 7950X",
     price: "$549",
     priceValue: 549,
@@ -52,7 +54,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-20"),
   },
   {
-    id: 3,
+    id: "3",
     name: "32GB DDR5 RAM",
     price: "$199",
     priceValue: 199,
@@ -64,7 +66,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-10"),
   },
   {
-    id: 4,
+    id: "4",
     name: "1TB NVMe SSD",
     price: "$89",
     priceValue: 89,
@@ -76,7 +78,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-18"),
   },
   {
-    id: 5,
+    id: "5",
     name: "NVIDIA GeForce RTX 4080 Super",
     price: "$999",
     priceValue: 999,
@@ -88,7 +90,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-22"),
   },
   {
-    id: 6,
+    id: "6",
     name: "Intel i9-14900K",
     price: "$579",
     priceValue: 579,
@@ -100,7 +102,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-12"),
   },
   {
-    id: 7,
+    id: "7",
     name: "ASUS ROG Motherboard",
     price: "$349",
     priceValue: 349,
@@ -112,7 +114,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-25"),
   },
   {
-    id: 8,
+    id: "8",
     name: "Corsair 850W PSU",
     price: "$129",
     priceValue: 129,
@@ -124,7 +126,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-08"),
   },
   {
-    id: 9,
+    id: "9",
     name: "AMD Radeon RX 7900 XTX",
     price: "$899",
     priceValue: 899,
@@ -136,7 +138,7 @@ const allProducts: Product[] = [
     createdAt: new Date("2024-01-14"),
   },
   {
-    id: 10,
+    id: "10",
     name: "MSI Z790 Motherboard",
     price: "$299",
     priceValue: 299,
@@ -260,10 +262,43 @@ export default function MarketScreen() {
     setActiveCategoryFilter("All");
   };
 
-  const handleWishlistPress = (id: number, isWishlisted: boolean) => {
-    console.log(`Product ${id} wishlisted: ${isWishlisted}`);
-    // In real app, update wishlist state/API
+  const handleWishlistPress = async (
+    productId: string,
+    isWishlisted: boolean
+  ) => {
+    const userId = useAuthStore.getState().session?.user.id;
+
+    if (!userId) {
+      console.warn('User not logged in');
+      return;
+    }
+
+    if (isWishlisted) {
+      // REMOVE from wishlist
+      const { error } = await supabase
+        .from('wishlist')
+        .delete()
+        .eq('user_id', userId)
+        .eq('product_id', productId);
+
+      if (error) {
+        console.error('Error removing from wishlist:', error.message);
+      }
+    } else {
+      // ADD to wishlist
+      const { error } = await supabase
+        .from('wishlist')
+        .insert({
+          user_id: userId,
+          product_id: productId,
+        });
+
+      if (error && error.code !== '23505') {
+        console.error('Error adding to wishlist:', error.message);
+      }
+    }
   };
+
 
   const activeFiltersCount =
     (filters.minPrice ? 1 : 0) +
