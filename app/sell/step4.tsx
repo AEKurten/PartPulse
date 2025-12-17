@@ -1,14 +1,16 @@
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSearchParams } from 'expo-router/build/hooks';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type listingData = {
-  itemName: string;
+  name: string;
   category: string;
   condition: string;
   description: string;
@@ -18,17 +20,6 @@ type listingData = {
   aiScore: number;
 };
 
-// Mock listing data (in real app, this would come from previous steps)
-const listingData = {
-  itemName: 'NVIDIA GeForce RTX 4090',
-  category: 'GPU',
-  condition: 'A+ (Like New)',
-  description: 'Excellent condition RTX 4090, barely used. Original packaging included. All components functioning properly.',
-  price: '$1,549',
-  photos: 3,
-  aiGrade: 'A+',
-  aiScore: 92,
-};
 
 // Mock market data
 const marketData = {
@@ -41,13 +32,73 @@ const marketData = {
 type ListingType = 'marketplace' | 'instant';
 
 export default function SellStep4Screen() {
+  const params = useSearchParams();
+  const productId = params.get('productId');
+  const [listingData, setListingData] = useState<listingData>();
+
+  const [isLoading, setIsLoading] = useState(false);
+
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const [listingType, setListingType] = useState<ListingType>('marketplace');
 
-  const handlePublish = () => {
-    // Publish listing
-    router.push('/sell/step5');
+  useEffect(() => {
+    const getListingData = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching listing data:', error);
+        return;
+      }
+
+      const photosCount = data.images ? data.images.length : 0;
+      const dataFormatted: listingData = {
+        name: data.name,
+        category: data.category,
+        condition: data.condition,
+        description: data.description,
+        price: `R ${data.price.toFixed(2)}`,
+        photos: photosCount,
+        aiGrade: "A+", // hardcoded value for temp
+        aiScore: 95,// hardcoded value for temp
+      }
+      setListingData(dataFormatted)
+    };
+
+    getListingData();
+  }, [productId]);
+
+  const handlePublish = async () => {
+    setIsLoading(true);
+
+    if (!productId) {
+      console.error('Product ID not found in route parameters');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('products')
+        .update({
+          Listing_Type: listingType,
+          status: "active",
+        })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      router.push('/sell/step5');
+
+
+    } catch (error) {
+      console.error('Error updating listing type:', error);
+    }
+    finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -180,7 +231,7 @@ export default function SellStep4Screen() {
               <View style={{ marginBottom: 20 }}>
                 <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Item Name</Text>
                 <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600' }}>
-                  {listingData.itemName}
+                  {listingData && listingData.name}
                 </Text>
               </View>
 
@@ -204,7 +255,7 @@ export default function SellStep4Screen() {
                     }}
                   >
                     <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '500' }}>
-                      {listingData.category}
+                      {listingData && listingData.category}
                     </Text>
                   </View>
                 </View>
@@ -220,17 +271,16 @@ export default function SellStep4Screen() {
                     }}
                   >
                     <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '500' }}>
-                      {listingData.condition}
+                      {listingData && listingData.condition}
                     </Text>
                   </View>
                 </View>
               </View>
-
               {/* Description */}
               <View style={{ marginBottom: 20 }}>
                 <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Description</Text>
                 <Text style={{ color: colors.textColor, fontSize: 16, lineHeight: 24 }}>
-                  {listingData.description}
+                  {listingData && listingData.description}
                 </Text>
               </View>
 
@@ -245,7 +295,7 @@ export default function SellStep4Screen() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginBottom: 8 }}>Asking Price</Text>
                   <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold' }}>
-                    {listingData.price}
+                    {listingData && listingData.price}
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
@@ -253,7 +303,7 @@ export default function SellStep4Screen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Ionicons name="images-outline" size={20} color={colors.secondaryTextColor} />
                     <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600' }}>
-                      {listingData.photos}
+                      {listingData && listingData.photos}
                     </Text>
                   </View>
                 </View>
@@ -276,7 +326,7 @@ export default function SellStep4Screen() {
                     AI Certified
                   </Text>
                   <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-                    Grade {listingData.aiGrade} • Score {listingData.aiScore}
+                    Grade {listingData && listingData.aiGrade} • Score {listingData && listingData.aiScore}
                   </Text>
                 </View>
               </View>

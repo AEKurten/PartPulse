@@ -56,6 +56,7 @@ export interface Database {
           model: string | null;
           images: string[];
           status: 'active' | 'sold' | 'draft';
+          listing_type: string | null;
           created_at: string;
           updated_at: string;
         };
