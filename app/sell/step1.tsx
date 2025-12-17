@@ -1,11 +1,13 @@
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeColors } from '@/hooks/use-theme-colors';
 import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '../stores/useAuthStore';
 
 const categories = ['GPU', 'CPU', 'RAM', 'Storage', 'Motherboard', 'PSU', 'Cooling', 'Case', 'Other'];
 const conditions = ['A+ (Like New)', 'A (Excellent)', 'B (Good)', 'C (Fair)', 'D (Poor)'];
@@ -20,19 +22,73 @@ export default function SellStep1Screen() {
   const [price, setPrice] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showConditionDropdown, setShowConditionDropdown] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(false)
+
   // Focus states
   const [nameFocused, setNameFocused] = useState(false);
   const [descriptionFocused, setDescriptionFocused] = useState(false);
   const [priceFocused, setPriceFocused] = useState(false);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     // Basic validation
-    if (!itemName || !category || !condition || !description) {
-      // Show error - for now just return
+    if (!itemName.trim() || !category.trim() || !condition.trim() || !description.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
-    router.push('/sell/step2');
+
+    const priceNumber = parseFloat(price);
+    if (priceNumber) {
+      if (isNaN(priceNumber) || priceNumber < 0) {
+        Alert.alert('Error', 'Please enter a valid positive price.');
+        return;
+      }
+    }
+
+    //user id 
+    const userId = useAuthStore.getState().user?.id;
+
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated.');
+      router.replace('/auth/login');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert([
+          {
+            seller_id: userId,
+            name: itemName,
+            description: description,
+            price: parseFloat(price),
+            condition: condition.split(' ')[0], // Store only the grade letter
+            category: category,
+          },
+        ]).select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('Failed to create product listing.');
+      }
+
+      const productId = data[0].id;
+      router.push({
+        pathname: '/sell/step2',
+        params: { productId },
+      });
+    }
+    catch (error) {
+      console.error('Error creating listing:', error);
+      Alert.alert('Error', 'There was an error creating your listing. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

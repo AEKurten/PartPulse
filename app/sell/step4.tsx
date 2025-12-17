@@ -1,12 +1,22 @@
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeColors } from '@/hooks/use-theme-colors';
-import { StatusBar } from 'expo-status-bar';
+
+type listingData = {
+  itemName: string;
+  category: string;
+  condition: string;
+  description: string;
+  price: string;
+  photos: number;
+  aiGrade: string;
+  aiScore: number;
+};
 
 // Mock listing data (in real app, this would come from previous steps)
 const listingData = {

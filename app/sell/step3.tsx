@@ -1,11 +1,15 @@
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSearchParams } from 'expo-router/build/hooks';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeColors } from '@/hooks/use-theme-colors';
-import { StatusBar } from 'expo-status-bar';
+import { useAuthStore } from '../stores/useAuthStore';
+
 
 // Mock AI analysis data
 const aiAnalysis = {
@@ -31,10 +35,50 @@ export default function SellStep3Screen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
 
-  const handleAccept = () => {
-    // Accept AI recommendations and continue
-    router.push('/sell/step4');
+
+  const handleAccept = async () => {
+    //get productId from route params
+    const productId = searchParams.get('productId');
+    const userId = useAuthStore.getState().user?.id;
+
+    //get the product from the database and update it with the aiAnalysis data
+    try {
+      setIsLoading(true);
+
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!productId) {
+        throw new Error('Product ID not found in route parameters');
+      }
+
+      const { error } = await supabase.from('products')
+        .update({
+          price: parseFloat(aiAnalysis.recommendedPrice.replace('$', '').replace(',', '')),
+          seller_id: userId,
+        })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      router.push({
+        pathname: '/sell/step4',
+        params: {
+          productId: productId,
+        },
+      });
+
+    } catch (error) {
+      console.error('Error updating product with AI recommendations:', error);
+      Alert.alert('Error', 'There was an error updating the product with AI recommendations. Please try again.');
+      return;
+    }
+    finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDecline = () => {

@@ -1,18 +1,23 @@
+import { useThemeColors } from '@/hooks/use-theme-colors';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSearchParams } from 'expo-router/build/hooks';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeColors } from '@/hooks/use-theme-colors';
-import { StatusBar } from 'expo-status-bar';
+import { useAuthStore } from '../stores/useAuthStore';
 
 export default function SellStep2Screen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const [photos, setPhotos] = useState<string[]>([]);
+  const searchParams = useSearchParams();
+
 
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -52,7 +57,10 @@ export default function SellStep2Screen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotos([...photos, result.assets[0].uri]);
+      setPhotos((prev) => {
+        const newPhotos = [...prev, result.assets[0].uri];
+        return newPhotos.slice(0, 10); // Limit to 10 photos
+      });
     }
   };
 
@@ -67,7 +75,10 @@ export default function SellStep2Screen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotos([...photos, result.assets[0].uri]);
+      setPhotos((prev) => {
+        const newPhotos = [...prev, result.assets[0].uri];
+        return newPhotos.slice(0, 10); // Limit to 10 photos
+      });
     }
   };
 
@@ -87,12 +98,77 @@ export default function SellStep2Screen() {
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
+  const uploadImages = async () => {
+    const uploadedUrls: string[] = [];
+    const productId = searchParams.get('productId');
+
+    for (const uri of photos) {
+
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        const fileExtension = uri.split('.').pop();
+        const filename = `item_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
+
+        const { error } = await supabase.storage
+          .from('Product-images')
+          .upload(filename, blob, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (error) throw error;
+
+        const publicUrl = supabase.storage
+          .from('Product-images')
+          .getPublicUrl(filename);
+        uploadedUrls.push(publicUrl.data.publicUrl);
+
+
+      }
+      catch (error) {
+        console.error('Error uploading images:', error);
+        throw error;
+      }
+    }
+
+    const userId = useAuthStore.getState().user?.id;
+
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    // single update after all uploads
+    const { error } = await supabase
+      .from('products')
+      .update({ images: uploadedUrls, seller_id: userId }) // Assuming your column is called `images` or `image_urls`
+      .eq('id', productId);
+
+    if (error) throw error;
+  }
+
   const handleNext = () => {
     if (photos.length === 0) {
       Alert.alert('Photos Required', 'Please add at least one photo of your item.');
       return;
     }
-    router.push('/sell/step3');
+
+    const test = searchParams.get('productId')
+    console.log('Navigating to step 3 with productId:', test);
+
+    try {
+      uploadImages().then(() => {
+        router.push({
+          pathname: '/sell/step3',
+          params: {
+            productId: test,
+          },
+        });
+      });
+    } catch (error) {
+      Alert.alert('Upload Error', 'There was an error uploading your photos. Please try again.');
+    }
   };
 
   return (
@@ -117,130 +193,130 @@ export default function SellStep2Screen() {
               paddingRight: Math.max(insets.right, 24),
             }}
           >
-          {/* Header */}
-          <View style={{ marginBottom: 24 }}>
-            <Pressable
-              onPress={() => router.back()}
-              style={{ marginBottom: 24, alignSelf: 'flex-start' }}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.textColor} />
-            </Pressable>
-            <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>
-              Add Photos
-            </Text>
-            <Text style={{ color: colors.secondaryTextColor, fontSize: 16 }}>
-              Upload photos of your item. Add at least one photo.
-            </Text>
-          </View>
-
-          {/* Add Photo Button - Full Width */}
-          {photos.length < 10 && (
-            <Pressable
-              onPress={showImagePickerOptions}
-              style={{
-                width: '100%',
-                paddingVertical: 32,
-                marginBottom: 24,
-                backgroundColor: 'transparent',
-                borderRadius: 12,
-                borderWidth: 2,
-                borderColor: colors.borderColor,
-                borderStyle: 'dashed',
-                justifyContent: 'center',
-                alignItems: 'center',
-                flexDirection: 'row',
-              }}
-            >
-              <Ionicons name="cloud-upload-outline" size={24} color={colors.secondaryTextColor} style={{ marginRight: 8 }} />
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 16, fontWeight: '600' }}>
-                Add Photo
+            {/* Header */}
+            <View style={{ marginBottom: 24 }}>
+              <Pressable
+                onPress={() => router.back()}
+                style={{ marginBottom: 24, alignSelf: 'flex-start' }}
+              >
+                <Ionicons name="arrow-back" size={24} color={colors.textColor} />
+              </Pressable>
+              <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>
+                Add Photos
               </Text>
-            </Pressable>
-          )}
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 16 }}>
+                Upload photos of your item. Add at least one photo.
+              </Text>
+            </View>
 
-          {/* Photo Grid */}
-          {photos.length > 0 && (
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                gap: 12,
-                marginBottom: 32,
-              }}
-            >
-              {/* Display existing photos */}
-              {photos.map((uri, index) => (
-                <View
-                  key={index}
-                  style={{
-                    width: '48%',
-                    aspectRatio: 1,
-                    position: 'relative',
-                  }}
-                >
-                  <Image
-                    source={{ uri }}
+            {/* Add Photo Button - Full Width */}
+            {photos.length < 10 && (
+              <Pressable
+                onPress={showImagePickerOptions}
+                style={{
+                  width: '100%',
+                  paddingVertical: 32,
+                  marginBottom: 24,
+                  backgroundColor: 'transparent',
+                  borderRadius: 12,
+                  borderWidth: 2,
+                  borderColor: colors.borderColor,
+                  borderStyle: 'dashed',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                }}
+              >
+                <Ionicons name="cloud-upload-outline" size={24} color={colors.secondaryTextColor} style={{ marginRight: 8 }} />
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 16, fontWeight: '600' }}>
+                  Add Photo
+                </Text>
+              </Pressable>
+            )}
+
+            {/* Photo Grid */}
+            {photos.length > 0 && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  marginBottom: 32,
+                }}
+              >
+                {/* Display existing photos */}
+                {photos.map((uri, index) => (
+                  <View
+                    key={index}
                     style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: 12,
-                    }}
-                    contentFit="cover"
-                  />
-                  <Pressable
-                    onPress={() => removePhoto(index)}
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                      borderRadius: 20,
-                      width: 32,
-                      height: 32,
-                      justifyContent: 'center',
-                      alignItems: 'center',
+                      width: '48%',
+                      aspectRatio: 1,
+                      position: 'relative',
                     }}
                   >
-                    <Ionicons name="close" size={20} color="#FFFFFF" />
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          )}
+                    <Image
+                      source={{ uri }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 12,
+                      }}
+                      contentFit="cover"
+                    />
+                    <Pressable
+                      onPress={() => removePhoto(index)}
+                      style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: 20,
+                        width: 32,
+                        height: 32,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Ionicons name="close" size={20} color="#FFFFFF" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
 
-          {/* Tips */}
-          {photos.length === 0 && (
-            <View
-              style={{
-                backgroundColor: colors.cardBackground,
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 32,
-                borderWidth: 1,
-                borderColor: colors.borderColor,
-              }}
-            >
-              <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
-                📸 Photo Tips
-              </Text>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 12, lineHeight: 20 }}>
-                • Take clear, well-lit photos{'\n'}
-                • Show all angles and any damage{'\n'}
-                • Include serial numbers if visible{'\n'}
-                • Up to 10 photos allowed
-              </Text>
-            </View>
-          )}
+            {/* Tips */}
+            {photos.length === 0 && (
+              <View
+                style={{
+                  backgroundColor: colors.cardBackground,
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 32,
+                  borderWidth: 1,
+                  borderColor: colors.borderColor,
+                }}
+              >
+                <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
+                  📸 Photo Tips
+                </Text>
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 12, lineHeight: 20 }}>
+                  • Take clear, well-lit photos{'\n'}
+                  • Show all angles and any damage{'\n'}
+                  • Include serial numbers if visible{'\n'}
+                  • Up to 10 photos allowed
+                </Text>
+              </View>
+            )}
 
-          {/* Photo Count */}
-          {photos.length > 0 && (
-            <View style={{ marginBottom: 32 }}>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 14, textAlign: 'center' }}>
-                {photos.length} {photos.length === 1 ? 'photo' : 'photos'} added
-                {photos.length < 10 && ` • ${10 - photos.length} more allowed`}
-              </Text>
-            </View>
-          )}
+            {/* Photo Count */}
+            {photos.length > 0 && (
+              <View style={{ marginBottom: 32 }}>
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14, textAlign: 'center' }}>
+                  {photos.length} {photos.length === 1 ? 'photo' : 'photos'} added
+                  {photos.length < 10 && ` • ${10 - photos.length} more allowed`}
+                </Text>
+              </View>
+            )}
 
           </View>
         </ScrollView>
