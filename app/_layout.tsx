@@ -82,6 +82,7 @@ function RootLayoutContent() {
           <Stack.Screen name="my-listings" options={{ headerShown: false }} />
           <Stack.Screen name="edit-listing" options={{ headerShown: false }} />
           <Stack.Screen name="feedback" options={{ headerShown: false }} />
+          <Stack.Screen name="blocked-users" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style={actualTheme === 'dark' ? 'light' : 'dark'} />

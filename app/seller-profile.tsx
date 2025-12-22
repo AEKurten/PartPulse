@@ -1,3 +1,4 @@
+import { BlockReportModal } from '@/components/block-report-modal';
 import { ProductCard } from '@/components/product-card';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { getProfile } from '@/lib/database';
@@ -11,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, PanResponder, Pressable, Animated as RNAnimated, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from './stores/useAuthStore';
 
 // Reviews (TODO: Implement reviews system)
 
@@ -147,8 +149,10 @@ export default function SellerProfileScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const { sellerId } = useLocalSearchParams<{ sellerId: string }>();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'listings' | 'reviews'>('listings');
   const [showMenu, setShowMenu] = useState(false);
+  const [showBlockReportModal, setShowBlockReportModal] = useState(false);
   const [seller, setSeller] = useState<Profile | null>(null);
   const [listings, setListings] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -801,18 +805,7 @@ export default function SellerProfileScreen() {
                 <Pressable
                   onPress={() => {
                     setShowMenu(false);
-                    Alert.alert(
-                      'Block User',
-                      `Are you sure you want to block ${seller?.username || seller?.full_name || 'this user'}?`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Block',
-                          style: 'destructive',
-                          onPress: () => Alert.alert('Blocked', 'User has been blocked'),
-                        },
-                      ]
-                    );
+                    setShowBlockReportModal(true);
                   }}
                   style={({ pressed }) => ({
                     paddingVertical: 10,
@@ -823,39 +816,8 @@ export default function SellerProfileScreen() {
                 >
                   <View className="flex flex-row items-center gap-3">
                     <Ionicons name="ban-outline" size={18} color="#EF4444" />
-                    <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
-                      Block User
-                    </Text>
-                  </View>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => {
-                    setShowMenu(false);
-                    Alert.alert(
-                      'Report User',
-                      `Report ${seller?.username || seller?.full_name || 'this user'} for inappropriate behavior?`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Report',
-                          style: 'destructive',
-                          onPress: () => Alert.alert('Reported', 'Thank you for your report'),
-                        },
-                      ]
-                    );
-                  }}
-                  style={({ pressed }) => ({
-                    paddingVertical: 10,
-                    paddingHorizontal: 8,
-                    borderRadius: 8,
-                    backgroundColor: pressed ? colors.iconBackground : 'transparent',
-                  })}
-                >
-                  <View className="flex flex-row items-center gap-3">
-                    <Ionicons name="flag-outline" size={18} color="#EF4444" />
-                    <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
-                      Report User
+                    <Text style={{ color: '#EF4444', fontSize: 16, fontWeight: '500' }}>
+                      Block or Report
                     </Text>
                   </View>
                 </Pressable>
@@ -864,6 +826,23 @@ export default function SellerProfileScreen() {
           </RNAnimated.View>
         </Pressable>
       </Modal>
+
+      {/* Block/Report Modal */}
+      {seller && user && user.id !== seller.id && (
+        <BlockReportModal
+          visible={showBlockReportModal}
+          onClose={() => setShowBlockReportModal(false)}
+          userId={seller.id}
+          userName={seller.full_name || seller.username}
+          onBlocked={() => {
+            // Optionally refresh or navigate away
+            router.back();
+          }}
+          onReported={() => {
+            // Optionally show confirmation
+          }}
+        />
+      )}
     </View>
   );
 }

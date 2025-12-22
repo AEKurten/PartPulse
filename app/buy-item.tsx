@@ -1,3 +1,4 @@
+import { BlockReportModal } from '@/components/block-report-modal';
 import { PrivateChat } from '@/components/private-chat';
 import { ProductDetailSkeleton } from '@/components/product-detail-skeleton';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -30,6 +31,8 @@ export default function BuyItemScreen() {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [hasAlert, setHasAlert] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [showBlockReportModal, setShowBlockReportModal] = useState(false);
+  const { user } = useAuthStore();
 
   // Fetch product and seller data
   useEffect(() => {
@@ -573,11 +576,7 @@ export default function BuyItemScreen() {
           )}
 
           {/* Seller Info */}
-          <Pressable
-            onPress={() => router.push({
-              pathname: '/seller-profile',
-              params: { sellerId: product.seller_id }
-            })}
+          <View
             style={{
               backgroundColor: colors.cardBackground,
               borderRadius: 16,
@@ -590,7 +589,13 @@ export default function BuyItemScreen() {
               borderColor: colors.borderColor,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <Pressable
+              onPress={() => router.push({
+                pathname: '/seller-profile',
+                params: { sellerId: product.seller_id }
+              })}
+              style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+            >
               {seller?.avatar_url ? (
                 <Image
                   source={{ uri: seller.avatar_url }}
@@ -611,9 +616,22 @@ export default function BuyItemScreen() {
                   </Text>
                 </View>
               </View>
+            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {user && seller && user.id !== seller.id && (
+                <Pressable
+                  onPress={() => setShowBlockReportModal(true)}
+                  style={{
+                    padding: 8,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color={colors.secondaryTextColor} />
+                </Pressable>
+              )}
+              <Ionicons name="chevron-forward" size={20} color={colors.secondaryTextColor} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.secondaryTextColor} />
-          </Pressable>
+          </View>
 
           {/* Chat Component - Only for Marketplace Listings */}
           {product.listing_type === 'marketplace' && (
@@ -818,6 +836,22 @@ export default function BuyItemScreen() {
           </Pressable>
         )}
       </View>
+
+      {/* Block/Report Modal */}
+      {seller && user && user.id !== seller.id && (
+        <BlockReportModal
+          visible={showBlockReportModal}
+          onClose={() => setShowBlockReportModal(false)}
+          userId={seller.id}
+          userName={seller.full_name || seller.username}
+          onBlocked={() => {
+            // Optionally refresh or navigate away
+          }}
+          onReported={() => {
+            // Optionally show confirmation
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }

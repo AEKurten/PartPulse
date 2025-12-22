@@ -305,11 +305,195 @@ export default function EditListingScreen() {
 
               if (error) throw error;
 
-              Alert.alert('Success', 'Listing marked as sold', [
-                { text: 'OK', onPress: () => router.back() }
-              ]);
+              // Refresh product data
+              const updatedProduct = await getProduct(productId);
+              if (updatedProduct) {
+                setProduct(updatedProduct);
+              }
+
+              Alert.alert('Success', 'Listing marked as sold');
             } catch (error: any) {
               Alert.alert('Error', `Failed to update listing: ${error.message}`);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleReactivate = async () => {
+    if (!user?.id || !productId) return;
+
+    Alert.alert(
+      'Reactivate Listing',
+      'Are you sure you want to reactivate this listing? It will be visible to buyers again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reactivate',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('products')
+                .update({ status: 'active' })
+                .eq('id', productId)
+                .eq('seller_id', user.id);
+
+              if (error) throw error;
+
+              // Refresh product data
+              const updatedProduct = await getProduct(productId);
+              if (updatedProduct) {
+                setProduct(updatedProduct);
+              }
+
+              Alert.alert('Success', 'Listing reactivated and visible to buyers');
+            } catch (error: any) {
+              Alert.alert('Error', `Failed to reactivate listing: ${error.message}`);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handlePause = async () => {
+    if (!user?.id || !productId) return;
+
+    Alert.alert(
+      'Pause Listing',
+      'Are you sure you want to pause this listing? It will be hidden from buyers until you resume it.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Pause',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('products')
+                .update({ status: 'paused' })
+                .eq('id', productId)
+                .eq('seller_id', user.id);
+
+              if (error) throw error;
+
+              // Refresh product data
+              const updatedProduct = await getProduct(productId);
+              if (updatedProduct) {
+                setProduct(updatedProduct);
+              }
+
+              Alert.alert('Success', 'Listing paused and hidden from buyers');
+            } catch (error: any) {
+              Alert.alert('Error', `Failed to pause listing: ${error.message}`);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleResume = async () => {
+    if (!user?.id || !productId) return;
+
+    Alert.alert(
+      'Resume Listing',
+      'Are you sure you want to resume this listing? It will be visible to buyers again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Resume',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('products')
+                .update({ status: 'active' })
+                .eq('id', productId)
+                .eq('seller_id', user.id);
+
+              if (error) throw error;
+
+              // Refresh product data
+              const updatedProduct = await getProduct(productId);
+              if (updatedProduct) {
+                setProduct(updatedProduct);
+              }
+
+              Alert.alert('Success', 'Listing resumed and visible to buyers');
+            } catch (error: any) {
+              Alert.alert('Error', `Failed to resume listing: ${error.message}`);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handlePublish = async () => {
+    if (!user?.id || !productId) return;
+
+    // Validate required fields before publishing
+    if (!itemName.trim() || !category.trim() || !brand.trim() || !model.trim() || !condition.trim() || !description.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields before publishing');
+      return;
+    }
+
+    const priceNumber = parseFloat(price);
+    if (!priceNumber || isNaN(priceNumber) || priceNumber < 0) {
+      Alert.alert('Error', 'Please enter a valid positive price');
+      return;
+    }
+
+    if (photos.length === 0) {
+      Alert.alert('Error', 'Please add at least one photo before publishing');
+      return;
+    }
+
+    Alert.alert(
+      'Publish Listing',
+      'Are you sure you want to publish this listing? It will be visible to buyers.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Publish',
+          onPress: async () => {
+            try {
+              setSaving(true);
+
+              // Upload new images if any
+              const allImageUrls = await uploadImages();
+
+              // Update product status and details
+              const { error } = await supabase
+                .from('products')
+                .update({
+                  status: 'active',
+                  name: itemName.trim(),
+                  description: description.trim(),
+                  price: priceNumber,
+                  condition: condition.split(' ')[0],
+                  category: category,
+                  brand: brand,
+                  model: model,
+                  images: allImageUrls.length > 0 ? allImageUrls : photos,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', productId)
+                .eq('seller_id', user.id);
+
+              if (error) throw error;
+
+              // Refresh product data
+              const updatedProduct = await getProduct(productId);
+              if (updatedProduct) {
+                setProduct(updatedProduct);
+              }
+
+              Alert.alert('Success', 'Listing published and visible to buyers');
+            } catch (error: any) {
+              Alert.alert('Error', `Failed to publish listing: ${error.message}`);
+            } finally {
+              setSaving(false);
             }
           }
         }
@@ -403,9 +587,46 @@ export default function EditListingScreen() {
                   <Ionicons name="create-outline" size={24} color="#EC4899" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold', marginBottom: 4 }}>
-                    Edit Listing
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold' }}>
+                      Edit Listing
+                    </Text>
+                    {product && (
+                      <View
+                        style={{
+                          backgroundColor: 
+                            product.status === 'active' ? '#10B981' + '20' :
+                            product.status === 'sold' ? '#EF4444' + '20' :
+                            product.status === 'paused' ? '#6B7280' + '20' :
+                            '#F59E0B' + '20',
+                          borderRadius: 8,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderWidth: 1,
+                          borderColor:
+                            product.status === 'active' ? '#10B981' :
+                            product.status === 'sold' ? '#EF4444' :
+                            product.status === 'paused' ? '#6B7280' :
+                            '#F59E0B',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color:
+                              product.status === 'active' ? '#10B981' :
+                              product.status === 'sold' ? '#EF4444' :
+                              product.status === 'paused' ? '#6B7280' :
+                              '#F59E0B',
+                            fontSize: 11,
+                            fontWeight: '700',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {product.status === 'paused' ? 'Paused' : product.status}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
                     Update your product details
                   </Text>
@@ -681,35 +902,141 @@ export default function EditListingScreen() {
               </ScrollView>
             </View>
 
-            {/* Danger Zone */}
+            {/* Listing Actions */}
             <View style={{ marginTop: 32, marginBottom: 24 }}>
               <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
                 Listing Actions
               </Text>
               
-              <Pressable
-                onPress={handleMarkAsSold}
-                style={{
-                  backgroundColor: colors.cardBackground,
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 12,
-                  borderWidth: 1,
-                  borderColor: '#10B981',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                }}
-              >
-                <Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
-                    Mark as Sold
-                  </Text>
-                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                    Mark this listing as sold
-                  </Text>
-                </View>
-              </Pressable>
+              {/* Show different actions based on status */}
+              {product?.status === 'sold' && (
+                <Pressable
+                  onPress={handleReactivate}
+                  style={{
+                    backgroundColor: colors.cardBackground,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#10B981',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Ionicons name="refresh-outline" size={24} color="#10B981" />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+                      Reactivate Listing
+                    </Text>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                      Make this listing active and visible to buyers again
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
+              {product?.status === 'draft' && (
+                <Pressable
+                  onPress={handlePublish}
+                  style={{
+                    backgroundColor: colors.cardBackground,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#10B981',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+                      Publish Listing
+                    </Text>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                      Make this listing active and visible to buyers
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
+              {product?.status === 'active' && (
+                <>
+                  <Pressable
+                    onPress={handlePause}
+                    style={{
+                      backgroundColor: colors.cardBackground,
+                      borderRadius: 12,
+                      padding: 16,
+                      marginBottom: 12,
+                      borderWidth: 1,
+                      borderColor: '#6B7280',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Ionicons name="pause-circle-outline" size={24} color="#6B7280" />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+                        Pause Listing
+                      </Text>
+                      <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                        Temporarily hide this listing from buyers
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleMarkAsSold}
+                    style={{
+                      backgroundColor: colors.cardBackground,
+                      borderRadius: 12,
+                      padding: 16,
+                      marginBottom: 12,
+                      borderWidth: 1,
+                      borderColor: '#F59E0B',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Ionicons name="checkmark-circle-outline" size={24} color="#F59E0B" />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+                        Mark as Sold
+                      </Text>
+                      <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                        Mark this listing as sold
+                      </Text>
+                    </View>
+                  </Pressable>
+                </>
+              )}
+
+              {product?.status === 'paused' && (
+                <Pressable
+                  onPress={handleResume}
+                  style={{
+                    backgroundColor: colors.cardBackground,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#10B981',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Ionicons name="play-circle-outline" size={24} color="#10B981" />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+                      Resume Listing
+                    </Text>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                      Make this listing active and visible to buyers again
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
 
               <Pressable
                 onPress={handleDelete}

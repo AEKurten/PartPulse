@@ -1901,6 +1901,31 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={20} color={secondaryTextColor} />
             </Pressable>
 
+            {/* Blocked Users */}
+            <Pressable
+              onPress={() => {
+                router.push('/blocked-users');
+              }}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                <Ionicons name="ban-outline" size={20} color={textColor} />
+                <View>
+                  <Text style={{ color: textColor, fontSize: 16, fontWeight: '600' }}>
+                    Blocked Users
+                  </Text>
+                  <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+                    Manage blocked users
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={secondaryTextColor} />
+            </Pressable>
+
             {/* About */}
             <Pressable
               onPress={() => {

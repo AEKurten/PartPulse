@@ -60,9 +60,22 @@ export default function MarketScreen() {
 
     if (error) {
       console.error('Error fetching products:', error.message);
+      setAllProducts([]);
     } else {
-      console.log('Products fetched:', data);
-      setAllProducts(data || []);
+      // Transform products to match the Product interface
+      const transformedProducts: Product[] = (data || []).map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        price: typeof product.price === 'number' ? product.price.toFixed(2) : product.price.toString(),
+        priceValue: typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0,
+        condition: product.condition || '',
+        category: product.category || '',
+        brand: product.brand || '',
+        images: product.images || [],
+        created_at: product.created_at ? new Date(product.created_at) : new Date(),
+        Listing_Type: product.listing_type || 'marketplace',
+      }));
+      setAllProducts(transformedProducts);
     }
   };
 
@@ -105,28 +118,37 @@ export default function MarketScreen() {
   const filteredProducts = useMemo(() => {
     let products = [...allProducts];
 
-    // Category filter (quick chips)
-    if (activeCategoryFilter !== "All") {
+    // Category filter (quick chips) - only apply if modal categories are not set
+    if (activeCategoryFilter !== "All" && filters.categories.length === 0) {
       products = products.filter((p) => p.category === activeCategoryFilter);
     }
 
-    // Search filter
-    if (searchQuery) {
+    // Category filter (from modal) - takes precedence over chips
+    if (filters.categories.length > 0) {
       products = products.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+        filters.categories.includes(p.category)
+      );
+    }
+
+    // Search filter - search in name, brand, and model
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      products = products.filter((p) =>
+        p.name.toLowerCase().includes(query) ||
+        (p.brand && p.brand.toLowerCase().includes(query))
       );
     }
 
     // Price range filter
     if (filters.minPrice) {
       const minPrice = parseFloat(filters.minPrice);
-      if (!isNaN(minPrice)) {
+      if (!isNaN(minPrice) && minPrice >= 0) {
         products = products.filter((p) => p.priceValue >= minPrice);
       }
     }
     if (filters.maxPrice) {
       const maxPrice = parseFloat(filters.maxPrice);
-      if (!isNaN(maxPrice)) {
+      if (!isNaN(maxPrice) && maxPrice >= 0) {
         products = products.filter((p) => p.priceValue <= maxPrice);
       }
     }
@@ -138,16 +160,9 @@ export default function MarketScreen() {
       );
     }
 
-    // Category filter (from modal)
-    if (filters.categories.length > 0) {
-      products = products.filter((p) =>
-        filters.categories.includes(p.category)
-      );
-    }
-
     // Brand filter
     if (filters.brands.length > 0) {
-      products = products.filter((p) => filters.brands.includes(p.brand));
+      products = products.filter((p) => p.brand && filters.brands.includes(p.brand));
     }
 
     // Sort
@@ -163,7 +178,11 @@ export default function MarketScreen() {
         break;
       case "newest":
       default:
-        products.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); 
+        products.sort((a, b) => {
+          const dateA = a.created_at instanceof Date ? a.created_at.getTime() : new Date(a.created_at).getTime();
+          const dateB = b.created_at instanceof Date ? b.created_at.getTime() : new Date(b.created_at).getTime();
+          return dateB - dateA;
+        }); 
         break;
     }
 

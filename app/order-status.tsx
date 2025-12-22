@@ -1,13 +1,19 @@
+import { ReviewModal } from '@/components/review-modal';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { getOrder } from '@/lib/database';
+import { reviewExistsForOrder } from '@/lib/reviews';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from './stores/useAuthStore';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, Modal, PanResponder, Pressable, Animated as RNAnimated, ScrollView, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { Order } from '@/lib/database.types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -84,7 +90,12 @@ const trackingSteps = [
 export default function OrderStatusScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const params = useLocalSearchParams<{ orderId?: string }>();
+  const { user } = useAuthStore();
   const [showTrackingSheet, setShowTrackingSheet] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [sellerName, setSellerName] = useState<string>('');
   const trackingTranslateY = useRef(new RNAnimated.Value(0)).current;
   const trackingScrollViewRef = useRef<ScrollView>(null);
 
@@ -113,6 +124,46 @@ export default function OrderStatusScreen() {
       true // reverse the animation to create smooth left/right motion
     );
   }, []);
+
+  // Fetch order and check for review prompt
+  useEffect(() => {
+    const fetchOrderAndCheckReview = async () => {
+      if (!params.orderId || !user?.id) return;
+
+      try {
+        const orderData = await getOrder(params.orderId);
+        if (!orderData) return;
+
+        setOrder(orderData);
+
+        // Fetch seller name
+        const { data: sellerData } = await supabase
+          .from('profiles')
+          .select('username, full_name')
+          .eq('id', orderData.seller_id)
+          .single();
+
+        if (sellerData) {
+          setSellerName(sellerData.full_name || sellerData.username || 'Seller');
+        }
+
+        // Check if order is delivered and review doesn't exist
+        if (orderData.status === 'delivered') {
+          const reviewExists = await reviewExistsForOrder(params.orderId, user.id);
+          if (!reviewExists) {
+            // Show review modal after a short delay
+            setTimeout(() => {
+              setShowReviewModal(true);
+            }, 2000);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching order:', error);
+      }
+    };
+
+    fetchOrderAndCheckReview();
+  }, [params.orderId, user?.id]);
 
   // Animated style for drone
   const droneAnimatedStyle = useAnimatedStyle(() => {
@@ -612,6 +663,21 @@ export default function OrderStatusScreen() {
           </RNAnimated.View>
         </Pressable>
       </Modal>
+
+      {/* Review Modal */}
+      {order && user && (
+        <ReviewModal
+          visible={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          orderId={order.id}
+          reviewerId={user.id}
+          revieweeId={order.seller_id}
+          revieweeName={sellerName}
+          onReviewSubmitted={() => {
+            setShowReviewModal(false);
+          }}
+        />
+      )}
     </View>
   );
 }

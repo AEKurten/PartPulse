@@ -210,7 +210,8 @@ export interface Database {
       reviews: {
         Row: {
           id: string;
-          order_id: string;
+          order_id: string | null;
+          chat_id: string | null;
           reviewer_id: string;
           reviewee_id: string;
           rating: number;
@@ -219,7 +220,8 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          order_id: string;
+          order_id?: string | null;
+          chat_id?: string | null;
           reviewer_id: string;
           reviewee_id: string;
           rating: number;
@@ -228,7 +230,8 @@ export interface Database {
         };
         Update: {
           id?: string;
-          order_id?: string;
+          order_id?: string | null;
+          chat_id?: string | null;
           reviewer_id?: string;
           reviewee_id?: string;
           rating?: number;
@@ -362,6 +365,61 @@ export interface Database {
           chat_id?: string | null;
           read?: boolean;
           created_at?: string;
+        };
+      };
+      blocked_users: {
+        Row: {
+          id: string;
+          blocker_id: string;
+          blocked_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          blocker_id: string;
+          blocked_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          blocker_id?: string;
+          blocked_id?: string;
+          created_at?: string;
+        };
+      };
+      user_reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          reported_id: string;
+          reason: 'spam' | 'harassment' | 'fake_account' | 'inappropriate_content' | 'scam' | 'other';
+          description: string | null;
+          status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+          admin_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          reported_id: string;
+          reason: 'spam' | 'harassment' | 'fake_account' | 'inappropriate_content' | 'scam' | 'other';
+          description?: string | null;
+          status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+          admin_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          reporter_id?: string;
+          reported_id?: string;
+          reason?: 'spam' | 'harassment' | 'fake_account' | 'inappropriate_content' | 'scam' | 'other';
+          description?: string | null;
+          status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+          admin_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };

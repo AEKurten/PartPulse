@@ -11,12 +11,13 @@ type ProductCardProps = {
   condition: string;
   image: string;
   rating?: number;
+  status?: 'active' | 'sold' | 'draft' | 'paused';
   onPress?: () => void;
   onWishlistPress?: (productId: string, isWishlisted: boolean) => void;
   isWishlisted?: boolean;
 };
 
-export function ProductCard({ id, name, price, condition, image, rating, onPress, onWishlistPress, isWishlisted: initialWishlisted }: ProductCardProps) {
+export function ProductCard({ id, name, price, condition, image, rating, status, onPress, onWishlistPress, isWishlisted: initialWishlisted }: ProductCardProps) {
   const colors = useThemeColors();
   const [isWishlisted, setIsWishlisted] = useState(initialWishlisted ?? false);
 
@@ -55,6 +56,7 @@ export function ProductCard({ id, name, price, condition, image, rating, onPress
                 backgroundColor: colors.iconBackground,
                 marginBottom: 12,
                 overflow: 'hidden',
+                opacity: status === 'sold' || status === 'paused' ? 0.6 : 1,
               }}
             >
               <Image
@@ -63,6 +65,36 @@ export function ProductCard({ id, name, price, condition, image, rating, onPress
                 contentFit="cover"
               />
             </View>
+            {/* Status Badge */}
+            {status && status !== 'active' && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  left: 8,
+                  backgroundColor: 
+                    status === 'sold' ? '#10B981' : 
+                    status === 'draft' ? '#F59E0B' : 
+                    status === 'paused' ? '#6B7280' : 
+                    'transparent',
+                  borderRadius: 8,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  zIndex: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 10,
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {status === 'sold' ? 'Sold' : status === 'draft' ? 'Draft' : status === 'paused' ? 'Paused' : ''}
+                </Text>
+              </View>
+            )}
             {onWishlistPress && (
               <Pressable
                 onPress={(e) => {

@@ -25,11 +25,11 @@ export default function MyListingsScreen() {
     }
 
     try {
+      // Fetch all listings regardless of status
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('seller_id', user.id)
-        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -75,6 +75,7 @@ export default function MyListingsScreen() {
       price: product.price.toString(),
       condition: product.condition,
       image: imageUrl,
+      status: product.status as 'active' | 'sold' | 'draft',
     };
   });
 
@@ -129,7 +130,7 @@ export default function MyListingsScreen() {
                 My Listings
               </Text>
               <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                {listings.length} active {listings.length !== 1 ? 'listings' : 'listing'}
+                {listings.filter(l => l.status === 'active').length} active • {listings.filter(l => l.status === 'paused').length} paused • {listings.filter(l => l.status === 'sold').length} sold • {listings.filter(l => l.status === 'draft').length} draft
               </Text>
             </View>
           </View>
@@ -170,6 +171,7 @@ export default function MyListingsScreen() {
                 price={item.price}
                 condition={item.condition}
                 image={item.image}
+                status={item.status}
                 onPress={() => handleProductPress(item.id)}
                 onWishlistPress={undefined}
               />
@@ -211,7 +213,7 @@ export default function MyListingsScreen() {
               textAlign: 'center',
             }}
           >
-            No active listings
+            No listings yet
           </Text>
           <Text
             style={{
