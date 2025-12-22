@@ -771,8 +771,7 @@ export default function ProfileScreen() {
             {/* Active Listings */}
             <Pressable
               onPress={() => {
-                // Navigate to listings
-                console.log('View listings');
+                router.push('/my-listings');
               }}
               style={{
                 flex: 1,

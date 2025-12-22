@@ -79,6 +79,8 @@ function RootLayoutContent() {
           <Stack.Screen name="ai-tools" options={{ headerShown: false }} />
           <Stack.Screen name="ai-builder-results" options={{ headerShown: false }} />
           <Stack.Screen name="seller-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="my-listings" options={{ headerShown: false }} />
+          <Stack.Screen name="edit-listing" options={{ headerShown: false }} />
           <Stack.Screen name="feedback" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>

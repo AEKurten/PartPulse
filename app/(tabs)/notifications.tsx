@@ -1,95 +1,186 @@
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '../stores/useAuthStore';
 
-// Mock notification data
 interface Notification {
   id: string;
-  type: 'order' | 'message' | 'price_drop' | 'system';
+  type: 'order' | 'message' | 'price_drop' | 'product_available' | 'product_updated' | 'system';
   title: string;
   message: string;
   time: string;
   read: boolean;
   icon: string;
   iconColor: string;
+  product_id?: string;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'order',
-    title: 'Order Confirmed',
-    message: 'Your order for RTX 4090 has been confirmed by the seller',
-    time: '2 hours ago',
-    read: false,
-    icon: 'checkmark-circle-outline',
-    iconColor: '#10B981',
-  },
-  {
-    id: '2',
-    type: 'price_drop',
-    title: 'Price Drop Alert',
-    message: 'NVIDIA RTX 4080 Super is now $899 (was $999)',
-    time: '5 hours ago',
-    read: false,
-    icon: 'trending-down-outline',
-    iconColor: '#EC4899',
-  },
-  {
-    id: '3',
-    type: 'message',
-    title: 'New Message',
-    message: 'You have a new message from TechGuru',
-    time: '1 day ago',
-    read: true,
-    icon: 'chatbubble-ellipses-outline',
-    iconColor: '#3B82F6',
-  },
-  {
-    id: '4',
-    type: 'system',
-    title: 'Welcome to PartPulse!',
-    message: 'Start exploring the marketplace and find great deals',
-    time: '3 days ago',
-    read: true,
-    icon: 'notifications-outline',
-    iconColor: '#8B5CF6',
-  },
-];
+const getNotificationIcon = (type: string): { icon: string; color: string } => {
+  switch (type) {
+    case 'price_drop':
+      return { icon: 'trending-down-outline', color: '#EC4899' };
+    case 'product_available':
+      return { icon: 'checkmark-circle-outline', color: '#10B981' };
+    case 'product_updated':
+      return { icon: 'refresh-outline', color: '#3B82F6' };
+    case 'order':
+      return { icon: 'bag-outline', color: '#10B981' };
+    case 'message':
+      return { icon: 'chatbubble-ellipses-outline', color: '#3B82F6' };
+    case 'system':
+    default:
+      return { icon: 'notifications-outline', color: '#8B5CF6' };
+  }
+};
+
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  return date.toLocaleDateString();
+};
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const { user } = useAuthStore();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchNotifications = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return;
+      }
+
+      const formattedNotifications: Notification[] = (data || []).map((notif) => {
+        const iconData = getNotificationIcon(notif.type);
+        return {
+          id: notif.id,
+          type: notif.type as any,
+          title: notif.title,
+          message: notif.message,
+          time: formatTimeAgo(notif.created_at),
+          read: notif.read,
+          icon: iconData.icon,
+          iconColor: iconData.color,
+          product_id: notif.product_id || undefined,
+        };
+      });
+
+      setNotifications(formattedNotifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [user?.id]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchNotifications();
+    setRefreshing(false);
+  };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const handleMarkAsRead = async (id: string) => {
+    if (!user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return;
+      }
+
+      setNotifications(
+        notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+  const handleMarkAllAsRead = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) {
+        console.error('Error marking all as read:', error);
+        return;
+      }
+
+      setNotifications(notifications.map((n) => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
   };
 
-  const handleNotificationPress = (notification: Notification) => {
-    handleMarkAsRead(notification.id);
+  const handleNotificationPress = async (notification: Notification) => {
+    await handleMarkAsRead(notification.id);
+    
     // Navigate based on notification type
     switch (notification.type) {
       case 'order':
-        router.push('/order-status');
+        if (notification.order_id) {
+          router.push({ pathname: '/order-status', params: { orderId: notification.order_id } });
+        }
         break;
       case 'message':
-        router.push('/chats');
+        if (notification.chat_id) {
+          router.push({ pathname: '/chat', params: { chatId: notification.chat_id } });
+        } else {
+          router.push('/chats');
+        }
         break;
       case 'price_drop':
-        router.push('/(tabs)/market');
+      case 'product_available':
+      case 'product_updated':
+        if (notification.product_id) {
+          router.push({ pathname: '/buy-item', params: { productId: notification.product_id } });
+        } else {
+          router.push('/(tabs)/market');
+        }
         break;
       default:
         break;
@@ -156,7 +247,11 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Notifications List */}
-      {notifications.length > 0 ? (
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#EC4899" />
+        </View>
+      ) : notifications.length > 0 ? (
         <>
           {/* Mark All Read Button */}
           {unreadCount > 0 && (
@@ -185,6 +280,14 @@ export default function NotificationsScreen() {
             data={notifications}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#EC4899"
+                colors={["#EC4899"]}
+              />
+            }
             contentContainerStyle={{
               paddingLeft: Math.max(insets.left, 24),
               paddingRight: Math.max(insets.right, 24),

@@ -29,6 +29,7 @@ export default function BuyItemScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [hasAlert, setHasAlert] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Fetch product and seller data
   useEffect(() => {
@@ -64,17 +65,28 @@ export default function BuyItemScreen() {
           setSeller(sellerData);
         }
 
-        // Check if product is in wishlist
+        // Check if product is in wishlist and has alert, and if user is owner
         const userId = useAuthStore.getState().user?.id;
         if (userId) {
-          const { data: wishlistData } = await supabase
-            .from('wishlist')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('product_id', productId)
-            .single();
+          setIsOwner(productData.seller_id === userId);
           
-          setIsWishlisted(!!wishlistData);
+          const [wishlistResult, alertResult] = await Promise.all([
+            supabase
+              .from('wishlist')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('product_id', productId)
+              .single(),
+            supabase
+              .from('product_alerts')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('product_id', productId)
+              .single()
+          ]);
+          
+          setIsWishlisted(!!wishlistResult.data);
+          setHasAlert(!!alertResult.data);
         }
       } catch (error) {
         console.error('Error fetching product data:', error);
@@ -140,8 +152,58 @@ export default function BuyItemScreen() {
     }
   };
 
-  const handleAlertPress = () => {
-    setHasAlert(!hasAlert);
+  const handleAlertPress = async () => {
+    const userId = useAuthStore.getState().user?.id;
+    if (!userId) {
+      Alert.alert('Login Required', 'Please log in to set alerts for products');
+      return;
+    }
+
+    const shouldHaveAlert = !hasAlert;
+
+    try {
+      if (shouldHaveAlert) {
+        // Add alert
+        const { error } = await supabase
+          .from('product_alerts')
+          .insert({
+            user_id: userId,
+            product_id: productId,
+            alert_price: null, // Can be extended to allow custom price alerts
+          });
+
+        if (error) {
+          if (error.code === '23505') {
+            // Duplicate entry - already has alert, update state anyway
+            setHasAlert(true);
+          } else {
+            console.error('Error adding alert:', error);
+            Alert.alert('Error', `Failed to add alert: ${error.message}`);
+            return;
+          }
+        } else {
+          setHasAlert(true);
+          Alert.alert('Alert Set', 'You will be notified of price drops and updates for this product');
+        }
+      } else {
+        // Remove alert
+        const { error } = await supabase
+          .from('product_alerts')
+          .delete()
+          .eq('user_id', userId)
+          .eq('product_id', productId);
+
+        if (error) {
+          console.error('Error removing alert:', error);
+          Alert.alert('Error', `Failed to remove alert: ${error.message}`);
+          return;
+        }
+        setHasAlert(false);
+      }
+    } catch (error: any) {
+      console.error('Error updating alert:', error);
+      Alert.alert('Error', `Failed to update alert: ${error?.message || 'Unknown error'}`);
+    }
   };
 
   const handleContactSeller = () => {
@@ -664,7 +726,39 @@ export default function BuyItemScreen() {
           borderTopColor: colors.borderColor,
         }}
       >
-        {product.listing_type === 'instant' ? (
+        {isOwner ? (
+          /* Edit Listing Button - For Product Owner */
+          <Pressable
+            onPress={() => router.push({
+              pathname: '/edit-listing',
+              params: { productId }
+            })}
+            style={{ flex: 1 }}
+          >
+            {({ pressed }) => (
+              <LinearGradient
+                colors={['#EC4899', '#F97316']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 16,
+                  height: 56,
+                  width: '100%',
+                  opacity: pressed ? 0.8 : 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+              >
+                <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
+                  Edit Listing
+                </Text>
+              </LinearGradient>
+            )}
+          </Pressable>
+        ) : product.listing_type === 'instant' ? (
           /* Instant Buy Button - For Platform Sales */
           <Pressable
             onPress={handleBuyNow}

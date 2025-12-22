@@ -303,6 +303,67 @@ export interface Database {
           created_at?: string;
         };
       };
+      product_alerts: {
+        Row: {
+          id: string;
+          user_id: string;
+          product_id: string;
+          alert_price: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          product_id: string;
+          alert_price?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          product_id?: string;
+          alert_price?: number | null;
+          created_at?: string;
+        };
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: 'price_drop' | 'product_available' | 'product_updated' | 'order' | 'message' | 'system';
+          title: string;
+          message: string;
+          product_id: string | null;
+          order_id: string | null;
+          chat_id: string | null;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: 'price_drop' | 'product_available' | 'product_updated' | 'order' | 'message' | 'system';
+          title: string;
+          message: string;
+          product_id?: string | null;
+          order_id?: string | null;
+          chat_id?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: 'price_drop' | 'product_available' | 'product_updated' | 'order' | 'message' | 'system';
+          title?: string;
+          message?: string;
+          product_id?: string | null;
+          order_id?: string | null;
+          chat_id?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -328,6 +389,8 @@ export type Message = Database['public']['Tables']['messages']['Row'];
 export type Review = Database['public']['Tables']['reviews']['Row'];
 export type UserRig = Database['public']['Tables']['user_rigs']['Row'];
 export type UserRigStorage = Database['public']['Tables']['user_rig_storage']['Row'];
+export type ProductAlert = Database['public']['Tables']['product_alerts']['Row'];
+export type Notification = Database['public']['Tables']['notifications']['Row'];
 
 export type ProductInsert = Database['public']['Tables']['products']['Insert'];
 export type ProductUpdate = Database['public']['Tables']['products']['Update'];

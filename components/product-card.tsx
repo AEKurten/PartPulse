@@ -63,29 +63,31 @@ export function ProductCard({ id, name, price, condition, image, rating, onPress
                 contentFit="cover"
               />
             </View>
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                handleWishlistPress();
-              }}
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                borderRadius: 20,
-                width: 36,
-                height: 36,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Ionicons
-                name={isWishlisted ? 'heart' : 'heart-outline'}
-                size={20}
-                color={isWishlisted ? '#EC4899' : colors.textColor}
-              />
-            </Pressable>
+            {onWishlistPress && (
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleWishlistPress();
+                }}
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  borderRadius: 20,
+                  width: 36,
+                  height: 36,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Ionicons
+                  name={isWishlisted ? 'heart' : 'heart-outline'}
+                  size={20}
+                  color={isWishlisted ? '#EC4899' : colors.textColor}
+                />
+              </Pressable>
+            )}
           </View>
           <View className="flex-1 flex-row justify-between w-full items-start">
             <Text style={{ color: colors.textColor, fontWeight: '500', fontSize: 16, flex: 1, marginRight: 8 }} numberOfLines={1}>
