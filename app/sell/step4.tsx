@@ -29,8 +29,6 @@ const marketData = {
   averagePrice: '$1,520',
 };
 
-type ListingType = 'marketplace' | 'instant';
-
 export default function SellStep4Screen() {
   const params = useSearchParams();
   const productId = params.get('productId');
@@ -40,7 +38,6 @@ export default function SellStep4Screen() {
 
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
-  const [listingType, setListingType] = useState<ListingType>('marketplace');
 
   useEffect(() => {
     const getListingData = async () => {
@@ -83,7 +80,7 @@ export default function SellStep4Screen() {
     try {
       const { error } = await supabase.from('products')
         .update({
-          Listing_Type: listingType,
+          listing_type: 'marketplace', // Always marketplace for now
           status: "active",
         })
         .eq('id', productId);
@@ -332,160 +329,74 @@ export default function SellStep4Screen() {
               </View>
             </View>
 
-            {/* Listing Type Selection */}
+            {/* Marketplace Listing Info */}
             <View style={{ marginBottom: 24 }}>
               <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
                 Listing Type
               </Text>
 
-              {/* Marketplace Option */}
-              <Pressable
-                onPress={() => setListingType('marketplace')}
-                style={{ marginBottom: 12 }}
+              {/* Marketplace Option - Always Selected */}
+              <View
+                style={{
+                  backgroundColor: colors.cardBackground,
+                  borderRadius: 16,
+                  padding: 20,
+                  borderWidth: 2,
+                  borderColor: '#EC4899',
+                }}
               >
-                {({ pressed }) => (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: 12,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
+                      Marketplace Listing
+                    </Text>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                      List your item on the marketplace. Set your price and
+                      negotiate with buyers.
+                    </Text>
+                  </View>
                   <View
                     style={{
-                      backgroundColor: colors.cardBackground,
-                      borderRadius: 16,
-                      padding: 20,
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
                       borderWidth: 2,
-                      borderColor:
-                        listingType === 'marketplace' ? '#EC4899' : colors.borderColor,
-                      opacity: pressed ? 0.8 : 1,
+                      borderColor: '#EC4899',
+                      backgroundColor: '#EC4899',
+                      justifyContent: 'center',
+                      alignItems: 'center',
                     }}
                   >
                     <View
                       style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        marginBottom: 12,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: '#FFFFFF',
                       }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
-                          Marketplace Listing
-                        </Text>
-                        <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                          List your item on the marketplace. Set your price and
-                          negotiate with buyers.
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          borderWidth: 2,
-                          borderColor:
-                            listingType === 'marketplace' ? '#EC4899' : colors.secondaryTextColor,
-                          backgroundColor:
-                            listingType === 'marketplace' ? '#EC4899' : 'transparent',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }}
-                      >
-                        {listingType === 'marketplace' && (
-                          <View
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 4,
-                              backgroundColor: '#FFFFFF',
-                            }}
-                          />
-                        )}
-                      </View>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <Ionicons name="people-outline" size={16} color={colors.secondaryTextColor} />
-                      <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-                        Reach thousands of buyers • You set the price
-                      </Text>
-                    </View>
+                    />
                   </View>
-                )}
-              </Pressable>
-
-              {/* Instant Sell Option */}
-              <Pressable onPress={() => setListingType('instant')}>
-                {({ pressed }) => (
-                  <View
-                    style={{
-                      backgroundColor: colors.cardBackground,
-                      borderRadius: 16,
-                      padding: 20,
-                      borderWidth: 2,
-                      borderColor:
-                        listingType === 'instant' ? '#EC4899' : colors.borderColor,
-                      opacity: pressed ? 0.8 : 1,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        marginBottom: 12,
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
-                          Sell to Platform
-                        </Text>
-                        <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                          Sell directly to PartPulse. Get paid instantly at a
-                          guaranteed price.
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          borderWidth: 2,
-                          borderColor:
-                            listingType === 'instant' ? '#EC4899' : colors.secondaryTextColor,
-                          backgroundColor:
-                            listingType === 'instant' ? '#EC4899' : 'transparent',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }}
-                      >
-                        {listingType === 'instant' && (
-                          <View
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 4,
-                              backgroundColor: '#FFFFFF',
-                            }}
-                          />
-                        )}
-                      </View>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <Ionicons name="flash-outline" size={16} color="#10B981" />
-                      <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-                        Instant payment • Guaranteed price • No negotiations
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </Pressable>
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Ionicons name="people-outline" size={16} color={colors.secondaryTextColor} />
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
+                    Reach thousands of buyers • You set the price
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -522,7 +433,7 @@ export default function SellStep4Screen() {
                 }}
               >
                 <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
-                  {listingType === 'instant' ? 'Sell' : 'Publish Listing'}
+                  Publish Listing
                 </Text>
               </LinearGradient>
             )}

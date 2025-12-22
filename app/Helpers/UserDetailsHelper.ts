@@ -14,7 +14,7 @@ export const useUserData = () => {
         return {
             name: profile?.username || 'User',
             email: session?.user.email || 'add email',
-            avatar: profile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&q=80',
+            avatar: profile?.avatar_url || null, // Return null instead of Unsplash image
         };
     }, [profile, session, loading]);
 };

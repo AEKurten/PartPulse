@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../stores/useAuthStore";
 
@@ -49,23 +49,56 @@ export default function MarketScreen() {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [showPaywall, setShowPaywall] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [wishlistMap, setWishlistMap] = useState<Record<string, boolean>>({});
+  const [refreshing, setRefreshing] = useState(false);
 
-  //fetch products
+  const fetchProducts = async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('status', 'active'); // Only fetch active products
+
+    if (error) {
+      console.error('Error fetching products:', error.message);
+    } else {
+      console.log('Products fetched:', data);
+      setAllProducts(data || []);
+    }
+  };
+
+  const fetchWishlist = async () => {
+    const userId = useAuthStore.getState().user?.id;
+    if (!userId) {
+      setWishlistMap({});
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('wishlist')
+      .select('product_id')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error fetching wishlist:', error.message);
+    } else {
+      const map: Record<string, boolean> = {};
+      data?.forEach((item) => {
+        map[item.product_id] = true;
+      });
+      setWishlistMap(map);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchProducts(), fetchWishlist()]);
+    setRefreshing(false);
+  };
+
+  //fetch products and wishlist status
   useEffect(() => {
-    const fetchProducts = async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*');
-
-      if (error) {
-        console.error('Error fetching products:', error.message);
-      } else {
-        console.log('Products fetched:', data);
-        setAllProducts(data);
-      }
-    };
-
     fetchProducts();
+    fetchWishlist();
   }, []);
 
   // Filter and sort products
@@ -161,38 +194,70 @@ export default function MarketScreen() {
 
   const handleWishlistPress = async (
     productId: string,
-    isWishlisted: boolean
+    shouldBeWishlisted: boolean
   ) => {
-    const userId = useAuthStore.getState().session?.user.id;
+    const userId = useAuthStore.getState().user?.id;
 
     if (!userId) {
-      console.warn('User not logged in');
+      Alert.alert('Login Required', 'Please log in to add items to your wishlist');
       return;
     }
 
-    if (isWishlisted) {
-      // REMOVE from wishlist
-      const { error } = await supabase
-        .from('wishlist')
-        .delete()
-        .eq('user_id', userId)
-        .eq('product_id', productId);
+    try {
+      if (shouldBeWishlisted) {
+        // ADD to wishlist
+        const { error } = await supabase
+          .from('wishlist')
+          .insert({
+            user_id: userId,
+            product_id: productId,
+          });
 
-      if (error) {
-        console.error('Error removing from wishlist:', error.message);
-      }
-    } else {
-      // ADD to wishlist
-      const { error } = await supabase
-        .from('wishlist')
-        .insert({
-          user_id: userId,
-          product_id: productId,
+        if (error) {
+          if (error.code === '23505') {
+            // Duplicate entry - already in wishlist, update state anyway
+            setWishlistMap((prev) => ({
+              ...prev,
+              [productId]: true,
+            }));
+          } else {
+            console.error('Error adding to wishlist:', error);
+            Alert.alert('Error', `Failed to add to wishlist: ${error.message}`);
+            // Revert ProductCard state on error
+            return;
+          }
+        } else {
+          // Update local state only on success
+          setWishlistMap((prev) => ({
+            ...prev,
+            [productId]: true,
+          }));
+        }
+      } else {
+        // REMOVE from wishlist
+        const { error } = await supabase
+          .from('wishlist')
+          .delete()
+          .eq('user_id', userId)
+          .eq('product_id', productId);
+
+        if (error) {
+          console.error('Error removing from wishlist:', error);
+          Alert.alert('Error', `Failed to remove from wishlist: ${error.message}`);
+          // Revert ProductCard state on error
+          return;
+        }
+        
+        // Update local state only on success
+        setWishlistMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[productId];
+          return newMap;
         });
-
-      if (error && error.code !== '23505') {
-        console.error('Error adding to wishlist:', error.message);
       }
+    } catch (error: any) {
+      console.error('Error updating wishlist:', error);
+      Alert.alert('Error', `Failed to update wishlist: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -336,6 +401,14 @@ export default function MarketScreen() {
         numColumns={2}
         keyExtractor={(item) => item.id.toString()}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#EC4899"
+            colors={["#EC4899"]}
+          />
+        }
         contentContainerStyle={{
           paddingLeft: Math.max(insets.left, 24),
           paddingRight: Math.max(insets.right, 24),
@@ -348,11 +421,15 @@ export default function MarketScreen() {
             <ProductCard
               id={item.id}
               name={item.name}
-              price={item.price}
+              price={typeof item.price === 'number' ? item.price.toString() : item.price}
               condition={item.condition}
-              image={item.images[0]}
+              image={item.images && item.images.length > 0 ? item.images[0] : ''}
+              isWishlisted={wishlistMap[item.id] || false}
               onWishlistPress={handleWishlistPress}
-              onPress={() => router.push("/buy-item")}
+              onPress={() => router.push({
+                pathname: "/buy-item",
+                params: { productId: item.id }
+              })}
             />
           </View>
         )}

@@ -24,10 +24,11 @@ CREATE TABLE IF NOT EXISTS products (
   price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
   condition TEXT NOT NULL CHECK (condition IN ('A+', 'A', 'B', 'C', 'D')),
   category TEXT NOT NULL,
-  brand TEXT,
-  model TEXT,
+  brand TEXT NOT NULL,
+  model TEXT NOT NULL,
   images TEXT[] DEFAULT '{}',
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('active', 'sold', 'draft')),
+  listing_type TEXT CHECK (listing_type IN ('marketplace', 'instant')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
@@ -90,11 +91,39 @@ CREATE TABLE IF NOT EXISTS reviews (
   UNIQUE(order_id, reviewer_id)
 );
 
+-- User Rigs table (stores user's PC specifications)
+CREATE TABLE IF NOT EXISTS user_rigs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  cpu TEXT,
+  gpu TEXT,
+  motherboard TEXT,
+  ram TEXT,
+  psu TEXT,
+  pc_case TEXT,
+  is_primary BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+);
+
+-- User Rig Storage table (stores individual storage drives for each rig)
+CREATE TABLE IF NOT EXISTS user_rig_storage (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  rig_id UUID NOT NULL REFERENCES user_rigs(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('SSD', 'HDD', 'NVMe', 'M.2', 'Other')),
+  capacity TEXT,
+  model TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+);
+
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_products_seller_id ON products(seller_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_rigs_user_id ON user_rigs(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_rigs_is_primary ON user_rigs(user_id, is_primary) WHERE is_primary = true;
+CREATE INDEX IF NOT EXISTS idx_user_rig_storage_rig_id ON user_rig_storage(rig_id);
 
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_seller_id ON orders(seller_id);
@@ -115,6 +144,9 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_reviews_order_id ON reviews(order_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_reviewer_id ON reviews(reviewer_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_reviewee_id ON reviews(reviewee_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_rigs_user_id ON user_rigs(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_rigs_is_primary ON user_rigs(user_id, is_primary) WHERE is_primary = true;
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -138,6 +170,9 @@ CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
 CREATE TRIGGER update_chats_updated_at BEFORE UPDATE ON chats
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_user_rigs_updated_at BEFORE UPDATE ON user_rigs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Row Level Security (RLS) Policies
 
 -- Enable RLS on all tables
@@ -148,6 +183,7 @@ ALTER TABLE wishlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_rigs ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "Users can view all profiles" ON profiles
@@ -233,6 +269,82 @@ CREATE POLICY "Users can create reviews for their orders" ON reviews
       SELECT 1 FROM orders
       WHERE orders.id = reviews.order_id
       AND (orders.buyer_id = auth.uid() OR orders.seller_id = auth.uid())
+    )
+  );
+
+-- User Rigs policies
+CREATE POLICY "Users can view their own rigs" ON user_rigs
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own rigs" ON user_rigs
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own rigs" ON user_rigs
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own rigs" ON user_rigs
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Function to ensure only one primary rig per user
+CREATE OR REPLACE FUNCTION ensure_single_primary_rig()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- If setting this rig as primary, unset all other primary rigs for this user
+  IF NEW.is_primary = true THEN
+    UPDATE user_rigs
+    SET is_primary = false
+    WHERE user_id = NEW.user_id
+      AND id != NEW.id
+      AND is_primary = true;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically ensure only one primary rig per user
+CREATE TRIGGER ensure_single_primary_rig_trigger
+  BEFORE INSERT OR UPDATE ON user_rigs
+  FOR EACH ROW
+  WHEN (NEW.is_primary = true)
+  EXECUTE FUNCTION ensure_single_primary_rig();
+
+-- Enable RLS on user_rig_storage table
+ALTER TABLE user_rig_storage ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for user_rig_storage
+CREATE POLICY "Users can view storage for their own rigs" ON user_rig_storage
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM user_rigs
+      WHERE user_rigs.id = user_rig_storage.rig_id
+      AND user_rigs.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can insert storage for their own rigs" ON user_rig_storage
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_rigs
+      WHERE user_rigs.id = user_rig_storage.rig_id
+      AND user_rigs.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update storage for their own rigs" ON user_rig_storage
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM user_rigs
+      WHERE user_rigs.id = user_rig_storage.rig_id
+      AND user_rigs.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete storage for their own rigs" ON user_rig_storage
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM user_rigs
+      WHERE user_rigs.id = user_rig_storage.rig_id
+      AND user_rigs.user_id = auth.uid()
     )
   );
 

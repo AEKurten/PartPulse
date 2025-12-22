@@ -236,6 +236,73 @@ export interface Database {
           created_at?: string;
         };
       };
+      user_rigs: {
+        Row: {
+          id: string;
+          user_id: string;
+          cpu: string | null;
+          gpu: string | null;
+          motherboard: string | null;
+          ram: string | null;
+          psu: string | null;
+          pc_case: string | null;
+          is_primary: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          cpu?: string | null;
+          gpu?: string | null;
+          motherboard?: string | null;
+          ram?: string | null;
+          psu?: string | null;
+          pc_case?: string | null;
+          is_primary?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          cpu?: string | null;
+          gpu?: string | null;
+          motherboard?: string | null;
+          ram?: string | null;
+          psu?: string | null;
+          pc_case?: string | null;
+          is_primary?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_rig_storage: {
+        Row: {
+          id: string;
+          rig_id: string;
+          type: 'SSD' | 'HDD' | 'NVMe' | 'M.2' | 'Other';
+          capacity: string | null;
+          model: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rig_id: string;
+          type: 'SSD' | 'HDD' | 'NVMe' | 'M.2' | 'Other';
+          capacity?: string | null;
+          model?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          rig_id?: string;
+          type?: 'SSD' | 'HDD' | 'NVMe' | 'M.2' | 'Other';
+          capacity?: string | null;
+          model?: string | null;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -259,6 +326,8 @@ export type WishlistItem = Database['public']['Tables']['wishlist']['Row'];
 export type Chat = Database['public']['Tables']['chats']['Row'];
 export type Message = Database['public']['Tables']['messages']['Row'];
 export type Review = Database['public']['Tables']['reviews']['Row'];
+export type UserRig = Database['public']['Tables']['user_rigs']['Row'];
+export type UserRigStorage = Database['public']['Tables']['user_rig_storage']['Row'];
 
 export type ProductInsert = Database['public']['Tables']['products']['Insert'];
 export type ProductUpdate = Database['public']['Tables']['products']['Update'];

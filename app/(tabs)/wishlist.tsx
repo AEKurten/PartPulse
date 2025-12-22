@@ -1,32 +1,120 @@
 import { ProductCard } from '@/components/product-card';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '../stores/useAuthStore';
 
-// Mock wishlist data - in real app this would come from database
-const wishlistProducts = [
-  { id: 1, name: 'RTX 4090', price: '$1,599', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-  { id: 5, name: 'NVIDIA GeForce RTX 4080 Super', price: '$999', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-  { id: 7, name: 'ASUS ROG Motherboard', price: '$349', condition: 'A+', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
-];
+interface WishlistProduct {
+  id: string;
+  name: string;
+  price: number;
+  condition: string;
+  images: string[];
+}
 
 export default function WishlistScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
-  const [products, setProducts] = useState(wishlistProducts);
+  const { user } = useAuthStore();
+  const [products, setProducts] = useState<WishlistProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleRemoveFromWishlist = (id: number) => {
-    setProducts(products.filter((p) => p.id !== id));
-    // In real app, remove from database
+  useEffect(() => {
+    fetchWishlist();
+  }, [user?.id]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchWishlist();
+    setRefreshing(false);
   };
 
-  const handleWishlistPress = (id: number, isWishlisted: boolean) => {
+  const fetchWishlist = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Fetch wishlist items with product details
+      const { data, error } = await supabase
+        .from('wishlist')
+        .select(`
+          product_id,
+          products (
+            id,
+            name,
+            price,
+            condition,
+            images
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching wishlist:', error);
+        Alert.alert('Error', 'Failed to load wishlist');
+        return;
+      }
+
+      // Transform the data to match our ProductCard format
+      const wishlistProducts: WishlistProduct[] = (data || [])
+        .map((item: any) => {
+          const product = item.products;
+          if (!product) return null;
+          return {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            condition: product.condition,
+            images: product.images || [],
+          };
+        })
+        .filter((p: any) => p !== null);
+
+      setProducts(wishlistProducts);
+    } catch (error) {
+      console.error('Error fetching wishlist:', error);
+      Alert.alert('Error', 'Failed to load wishlist');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWishlistPress = async (productId: string, isWishlisted: boolean) => {
+    if (!user?.id) {
+      Alert.alert('Login Required', 'Please log in to manage your wishlist');
+      return;
+    }
+
     if (!isWishlisted) {
-      handleRemoveFromWishlist(id);
+      // Remove from wishlist
+      try {
+        const { error } = await supabase
+          .from('wishlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+
+        if (error) {
+          console.error('Error removing from wishlist:', error);
+          Alert.alert('Error', 'Failed to remove item from wishlist');
+        } else {
+          // Update local state
+          setProducts(products.filter((p) => p.id !== productId));
+        }
+      } catch (error) {
+        console.error('Error removing from wishlist:', error);
+        Alert.alert('Error', 'Failed to remove item from wishlist');
+      }
     }
   };
 
@@ -89,12 +177,24 @@ export default function WishlistScreen() {
       </View>
 
       {/* Products Grid */}
-      {products.length > 0 ? (
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#EC4899" />
+        </View>
+      ) : products.length > 0 ? (
         <FlatList
           data={products}
           numColumns={2}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#EC4899"
+              colors={["#EC4899"]}
+            />
+          }
           contentContainerStyle={{
             paddingLeft: Math.max(insets.left, 24),
             paddingRight: Math.max(insets.right, 24),
@@ -107,12 +207,15 @@ export default function WishlistScreen() {
               <ProductCard
                 id={item.id}
                 name={item.name}
-                price={item.price}
+                price={item.price.toString()}
                 condition={item.condition}
-                image={item.image}
+                image={item.images && item.images.length > 0 ? item.images[0] : ''}
                 isWishlisted={true}
                 onWishlistPress={handleWishlistPress}
-                onPress={() => router.push('/buy-item')}
+                onPress={() => router.push({
+                  pathname: '/buy-item',
+                  params: { productId: item.id }
+                })}
               />
             </View>
           )}

@@ -1,92 +1,162 @@
 import { ProductCard } from '@/components/product-card';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { getProfile } from '@/lib/database';
+import type { Product, Profile } from '@/lib/database.types';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { useState, useRef, useEffect } from 'react';
-import { Alert, Animated, FlatList, Modal, PanResponder, Pressable, ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Modal, PanResponder, Pressable, Animated as RNAnimated, RefreshControl, ScrollView, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Mock seller data (in real app, this would come from route params or API)
-const sellerData = {
-  id: 1,
-  name: 'TechGuru',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&q=80',
-  location: 'San Francisco, CA',
-  rating: 4.8,
-  totalReviews: 127,
-  responseTime: 'Usually responds within 1 hour',
-  memberSince: '2022',
-  aiVerified: true,
-  aiGrade: 'A+',
-  stats: {
-    itemsSold: 89,
-    activeListings: 12,
-    totalRating: 4.8,
-    responseRate: '98%',
-  },
-};
+// Reviews (TODO: Implement reviews system)
 
-// Mock listings
-const sellerListings = [
-  { id: 1, name: 'RTX 4090', price: '$1,599', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-  { id: 2, name: 'Ryzen 9 7950X', price: '$549', condition: 'A', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80' },
-  { id: 3, name: '32GB DDR5 RAM', price: '$199', condition: 'B', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
-  { id: 4, name: '1TB NVMe SSD', price: '$89', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-  { id: 5, name: 'ASUS ROG Motherboard', price: '$349', condition: 'A', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
-  { id: 6, name: 'Corsair 850W PSU', price: '$129', condition: 'B', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-];
+// Skeleton Loading Component
+function SellerProfileSkeleton() {
+  const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
+  const opacity = useSharedValue(0.5);
 
-// Mock reviews
-const reviews = [
-  {
-    id: 1,
-    reviewerName: 'Alex M.',
-    reviewerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80',
-    rating: 5,
-    date: '2 weeks ago',
-    comment: 'Excellent seller! Item was exactly as described and shipped quickly. Highly recommend!',
-    verifiedPurchase: true,
-  },
-  {
-    id: 2,
-    reviewerName: 'Sarah K.',
-    reviewerAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&q=80',
-    rating: 5,
-    date: '1 month ago',
-    comment: 'Great communication and fast shipping. The GPU works perfectly. Will buy from again!',
-    verifiedPurchase: true,
-  },
-  {
-    id: 3,
-    reviewerName: 'Mike T.',
-    reviewerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&q=80',
-    rating: 4,
-    date: '2 months ago',
-    comment: 'Good seller, item arrived as expected. Minor delay in shipping but overall satisfied.',
-    verifiedPurchase: true,
-  },
-];
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withTiming(0.2, { duration: 1500 }),
+      -1,
+      true
+    );
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  const SkeletonBox = ({ width, height, borderRadius = 8, style }: { width: number | string; height: number; borderRadius?: number; style?: any }) => (
+    <Animated.View
+      style={[
+        {
+          width,
+          height,
+          borderRadius,
+          backgroundColor: colors.iconBackground,
+        },
+        style,
+        animatedStyle,
+      ]}
+    />
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.backgroundColor, paddingTop: insets.top }}>
+      <StatusBar style={colors.statusBarStyle} />
+      {/* Header Skeleton */}
+      <View
+        style={{
+          paddingLeft: Math.max(insets.left, 24),
+          paddingRight: Math.max(insets.right, 24),
+          paddingTop: 24,
+          paddingBottom: 24,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.borderColor,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <SkeletonBox width={24} height={24} borderRadius={12} />
+          <View style={{ flex: 1, marginLeft: 16 }}>
+            <SkeletonBox width="60%" height={28} borderRadius={8} style={{ marginBottom: 8 }} />
+            <SkeletonBox width="40%" height={14} borderRadius={6} />
+          </View>
+          <SkeletonBox width={40} height={40} borderRadius={12} />
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingLeft: Math.max(insets.left, 24),
+          paddingRight: Math.max(insets.right, 24),
+          paddingBottom: 24,
+        }}
+      >
+        {/* Profile Header Skeleton */}
+        <View style={{ paddingTop: 24, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 }}>
+            <SkeletonBox width={80} height={80} borderRadius={40} style={{ marginRight: 16 }} />
+            <View style={{ flex: 1 }}>
+              <SkeletonBox width="70%" height={24} borderRadius={8} style={{ marginBottom: 8 }} />
+              <SkeletonBox width="50%" height={16} borderRadius={6} style={{ marginBottom: 4 }} />
+              <SkeletonBox width="40%" height={16} borderRadius={6} />
+            </View>
+          </View>
+          <SkeletonBox width="100%" height={48} borderRadius={16} />
+        </View>
+
+        {/* Stats Card Skeleton */}
+        <View
+          style={{
+            backgroundColor: colors.cardBackground,
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 24,
+            borderWidth: 1,
+            borderColor: colors.borderColor,
+          }}
+        >
+          <SkeletonBox width={100} height={18} borderRadius={6} style={{ marginBottom: 16 }} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} style={{ flex: 1, minWidth: '45%' }}>
+                <SkeletonBox width="60%" height={14} borderRadius={6} style={{ marginBottom: 8 }} />
+                <SkeletonBox width="80%" height={24} borderRadius={8} />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Tabs Skeleton */}
+        <View
+          style={{
+            flexDirection: 'row',
+            marginBottom: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.borderColor,
+          }}
+        >
+          <SkeletonBox width="50%" height={48} borderRadius={0} />
+          <SkeletonBox width="50%" height={48} borderRadius={0} />
+        </View>
+
+        {/* Listings Grid Skeleton */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <View key={i} style={{ flex: 1, minWidth: '45%' }}>
+              <SkeletonBox width="100%" height={200} borderRadius={16} style={{ marginBottom: 8 }} />
+              <SkeletonBox width="80%" height={16} borderRadius={6} style={{ marginBottom: 4 }} />
+              <SkeletonBox width="60%" height={14} borderRadius={6} />
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+const reviews: any[] = [];
 
 export default function SellerProfileScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { sellerId } = useLocalSearchParams<{ sellerId: string }>();
   const [activeTab, setActiveTab] = useState<'listings' | 'reviews'>('listings');
   const [showMenu, setShowMenu] = useState(false);
-  const translateY = useRef(new Animated.Value(0)).current;
+  const [seller, setSeller] = useState<Profile | null>(null);
+  const [listings, setListings] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const translateY = useRef(new RNAnimated.Value(0)).current;
 
-  useEffect(() => {
-    if (showMenu) {
-      translateY.setValue(0);
-    }
-  }, [showMenu]);
-
-  const handleWishlistPress = (id: number, isWishlisted: boolean) => {
-    console.log(`Product ${id} wishlisted: ${isWishlisted}`);
-  };
-
-  // Pan responder for swipe down to dismiss
+  // Pan responder for swipe down to dismiss - MUST be declared before any conditional returns
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -100,7 +170,7 @@ export default function SellerProfileScreen() {
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 150) {
-          Animated.timing(translateY, {
+          RNAnimated.timing(translateY, {
             toValue: 500,
             duration: 200,
             useNativeDriver: true,
@@ -109,7 +179,7 @@ export default function SellerProfileScreen() {
             setShowMenu(false);
           });
         } else {
-          Animated.spring(translateY, {
+          RNAnimated.spring(translateY, {
             toValue: 0,
             useNativeDriver: true,
           }).start();
@@ -117,6 +187,126 @@ export default function SellerProfileScreen() {
       },
     })
   ).current;
+
+  const fetchSellerData = async () => {
+    if (!sellerId) {
+      setError('No seller ID provided');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch seller profile
+      const sellerData = await getProfile(sellerId);
+      if (!sellerData) {
+        setError('Seller not found');
+        setLoading(false);
+        return;
+      }
+      setSeller(sellerData);
+
+      // Fetch seller's active listings
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('seller_id', sellerId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (productsError) {
+        console.error('Error fetching listings:', productsError);
+      } else {
+        setListings(productsData || []);
+      }
+    } catch (err) {
+      console.error('Error fetching seller data:', err);
+      setError('Failed to load seller profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchSellerData();
+    setRefreshing(false);
+  };
+
+  // Fetch seller data and listings
+  useEffect(() => {
+    fetchSellerData();
+  }, [sellerId]);
+
+  const handleWishlistPress = (id: string, isWishlisted: boolean) => {
+    console.log(`Product ${id} wishlisted: ${isWishlisted}`);
+  };
+
+  // Format products for ProductCard
+  const formattedListings = listings.map((product) => {
+    const imageUrl = product.images && product.images.length > 0 
+      ? product.images[0] 
+      : 'https://via.placeholder.com/400x300?text=No+Image';
+    
+    return {
+      id: product.id,
+      name: product.name,
+      price: `R ${parseFloat(product.price.toString()).toFixed(2)}`,
+      condition: product.condition,
+      image: imageUrl,
+    };
+  });
+
+  // Calculate stats
+  const stats = {
+    itemsSold: null as number | null, // TODO: Calculate from orders table
+    activeListings: listings.length,
+    totalRating: null as number | null, // TODO: Calculate from reviews
+    responseRate: null as string | null, // TODO: Calculate from chat response times
+  };
+
+  // Format member since date
+  const memberSince = seller?.created_at 
+    ? new Date(seller.created_at).getFullYear().toString()
+    : 'N/A';
+
+  // Pan responder useEffect - MUST be before conditional returns
+  useEffect(() => {
+    if (showMenu) {
+      translateY.setValue(0);
+    }
+  }, [showMenu]);
+
+  if (loading) {
+    return <SellerProfileSkeleton />;
+  }
+
+  if (error || !seller) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.backgroundColor, padding: 24 }}>
+        <Ionicons name="alert-circle-outline" size={64} color={colors.secondaryTextColor} />
+        <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>
+          {error || 'Seller not found'}
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={{
+            marginTop: 24,
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            backgroundColor: colors.cardBackground,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.borderColor,
+          }}
+        >
+          <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>Go Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -189,6 +379,14 @@ export default function SellerProfileScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#EC4899"
+            colors={["#EC4899"]}
+          />
+        }
         contentContainerStyle={{
           paddingLeft: Math.max(insets.left, 24),
           paddingRight: Math.max(insets.right, 24),
@@ -208,86 +406,61 @@ export default function SellerProfileScreen() {
                 backgroundColor: colors.iconBackground,
               }}
             >
-              <Image
-                source={{ uri: sellerData.avatar }}
-                style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
-              />
+              {seller.avatar_url ? (
+                <Image
+                  source={{ uri: seller.avatar_url }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="person-circle" size={80} color={colors.secondaryTextColor} />
+                </View>
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold', marginRight: 8 }}>
-                  {sellerData.name}
+                  {seller.username || seller.full_name || 'Unknown Seller'}
                 </Text>
-                {sellerData.aiVerified && (
-                  <View
-                    style={{
-                      backgroundColor: '#EC4899',
-                      borderRadius: 6,
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Ionicons name="sparkles" size={14} color="#FFFFFF" />
-                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600', marginLeft: 4 }}>
-                      AI Verified
-                    </Text>
-                  </View>
-                )}
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Ionicons name="location-outline" size={16} color={colors.secondaryTextColor} />
+                <Ionicons name="calendar-outline" size={16} color={colors.secondaryTextColor} />
                 <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginLeft: 4 }}>
-                  {sellerData.location}
+                  Member since {memberSince}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
                   <Ionicons name="star" size={16} color="#F59E0B" />
                   <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600', marginLeft: 4 }}>
-                    {sellerData.rating}
+                    {stats.totalRating !== null ? stats.totalRating.toFixed(1) : 'N/A'}
                   </Text>
                   <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginLeft: 4 }}>
-                    ({sellerData.totalReviews})
+                    ({reviews.length})
                   </Text>
                 </View>
-                {sellerData.aiVerified && (
-                  <View
-                    style={{
-                      backgroundColor: '#10B981',
-                      borderRadius: 6,
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                    }}
-                  >
-                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' }}>
-                      Grade {sellerData.aiGrade}
-                    </Text>
-                  </View>
-                )}
               </View>
             </View>
           </View>
 
-          {/* Response Time */}
-          <View
-            style={{
-              backgroundColor: colors.cardBackground,
-              borderRadius: 16,
-              padding: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: colors.borderColor,
-            }}
-          >
-            <Ionicons name="time-outline" size={20} color={colors.secondaryTextColor} />
-            <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginLeft: 8 }}>
-              {sellerData.responseTime}
-            </Text>
-          </View>
+          {/* Bio */}
+          {seller.bio && (
+            <View
+              style={{
+                backgroundColor: colors.cardBackground,
+                borderRadius: 16,
+                padding: 12,
+                marginTop: 12,
+                borderWidth: 1,
+                borderColor: colors.borderColor,
+              }}
+            >
+              <Text style={{ color: colors.textColor, fontSize: 14, lineHeight: 20 }}>
+                {seller.bio}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Stats Card */}
@@ -310,7 +483,7 @@ export default function SellerProfileScreen() {
                 Items Sold
               </Text>
               <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
-                {sellerData.stats.itemsSold}
+                {stats.itemsSold !== null ? stats.itemsSold : 'N/A'}
               </Text>
             </View>
             <View style={{ flex: 1, minWidth: '45%' }}>
@@ -318,7 +491,7 @@ export default function SellerProfileScreen() {
                 Active Listings
               </Text>
               <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
-                {sellerData.stats.activeListings}
+                {stats.activeListings}
               </Text>
             </View>
             <View style={{ flex: 1, minWidth: '45%' }}>
@@ -328,7 +501,7 @@ export default function SellerProfileScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name="star" size={20} color="#F59E0B" />
                 <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold', marginLeft: 4 }}>
-                  {sellerData.stats.totalRating}
+                  {stats.totalRating !== null ? stats.totalRating.toFixed(1) : 'N/A'}
                 </Text>
               </View>
             </View>
@@ -337,7 +510,7 @@ export default function SellerProfileScreen() {
                 Response Rate
               </Text>
               <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold' }}>
-                {sellerData.stats.responseRate}
+                {stats.responseRate || 'N/A'}
               </Text>
             </View>
           </View>
@@ -369,7 +542,7 @@ export default function SellerProfileScreen() {
                 textAlign: 'center',
               }}
             >
-              Listings ({sellerListings.length})
+              Listings ({formattedListings.length})
             </Text>
           </Pressable>
           <Pressable
@@ -396,23 +569,37 @@ export default function SellerProfileScreen() {
 
         {/* Listings Tab */}
         {activeTab === 'listings' && (
-          <FlatList
-            data={sellerListings}
-            numColumns={2}
-            scrollEnabled={false}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={{ gap: 16 }}
-            columnWrapperStyle={{ gap: 16 }}
-            renderItem={({ item }) => (
-              <View style={{ flex: 1 }}>
-                <ProductCard
-                  {...item}
-                  onWishlistPress={handleWishlistPress}
-                  onPress={() => router.push('/buy-item')}
-                />
+          <>
+            {formattedListings.length === 0 ? (
+              <View style={{ paddingVertical: 48, alignItems: 'center' }}>
+                <Ionicons name="cube-outline" size={64} color={colors.secondaryTextColor} />
+                <Text style={{ color: colors.textColor, fontSize: 18, fontWeight: '600', marginTop: 16 }}>
+                  No Active Listings
+                </Text>
+                <Text style={{ color: colors.secondaryTextColor, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
+                  This seller doesn't have any active listings at the moment.
+                </Text>
               </View>
+            ) : (
+              <FlatList
+                data={formattedListings}
+                numColumns={2}
+                scrollEnabled={false}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ gap: 16 }}
+                columnWrapperStyle={{ gap: 16 }}
+                renderItem={({ item }) => (
+                  <View style={{ flex: 1 }}>
+                    <ProductCard
+                      {...item}
+                      onWishlistPress={handleWishlistPress}
+                      onPress={() => router.push({ pathname: '/buy-item', params: { productId: item.id } })}
+                    />
+                  </View>
+                )}
+              />
             )}
-          />
+          </>
         )}
 
         {/* Reviews Tab */}
@@ -512,7 +699,7 @@ export default function SellerProfileScreen() {
             setShowMenu(false);
           }}
         >
-          <Animated.View
+          <RNAnimated.View
             style={{
               backgroundColor: colors.cardBackground,
               borderTopLeftRadius: 24,
@@ -616,7 +803,7 @@ export default function SellerProfileScreen() {
                     setShowMenu(false);
                     Alert.alert(
                       'Block User',
-                      `Are you sure you want to block ${sellerData.name}?`,
+                      `Are you sure you want to block ${seller?.username || seller?.full_name || 'this user'}?`,
                       [
                         { text: 'Cancel', style: 'cancel' },
                         {
@@ -647,7 +834,7 @@ export default function SellerProfileScreen() {
                     setShowMenu(false);
                     Alert.alert(
                       'Report User',
-                      `Report ${sellerData.name} for inappropriate behavior?`,
+                      `Report ${seller?.username || seller?.full_name || 'this user'} for inappropriate behavior?`,
                       [
                         { text: 'Cancel', style: 'cancel' },
                         {
@@ -674,7 +861,7 @@ export default function SellerProfileScreen() {
                 </Pressable>
               </View>
             </View>
-          </Animated.View>
+          </RNAnimated.View>
         </Pressable>
       </Modal>
     </View>

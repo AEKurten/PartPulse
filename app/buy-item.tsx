@@ -1,65 +1,207 @@
 import { PrivateChat } from '@/components/private-chat';
+import { ProductDetailSkeleton } from '@/components/product-detail-skeleton';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { getProduct } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { Dimensions, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Dimensions, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from './stores/useAuthStore';
+import type { Product } from '@/lib/database.types';
+import type { Profile } from '@/lib/database.types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Mock product data (in real app, this would come from route params or API)
-const productData = {
-  id: 1,
-  name: 'NVIDIA GeForce RTX 4090',
-  price: '$1,599',
-  condition: 'A+ (Like New)',
-  images: [
-    'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=800&h=600&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=800&h=600&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=800&h=600&fit=crop&q=80',
-  ],
-  sellerName: 'TechGuru',
-  sellerRating: 4.8,
-  aiCertified: true,
-  aiGrade: 'A+',
-  aiScore: 92,
-  description:
-    'Excellent condition RTX 4090, barely used. Original packaging included. All components functioning properly. No visible damage detected. Item shows minimal signs of use.',
-  specifications: [
-    { label: 'Brand', value: 'NVIDIA' },
-    { label: 'Model', value: 'GeForce RTX 4090' },
-    { label: 'Memory', value: '24GB GDDR6X' },
-    { label: 'Interface', value: 'PCIe 4.0' },
-    { label: 'Power Connector', value: '12VHPWR' },
-    { label: 'Warranty', value: '2 years remaining' },
-  ],
-  location: 'San Francisco, CA',
-  listedDate: '2 days ago',
-  isPrivateSale: false, // true for private sale, false for marketplace
-};
 
 export default function BuyItemScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const params = useLocalSearchParams();
+  const productId = params.productId as string;
+  
+  const [product, setProduct] = useState<Product | null>(null);
+  const [seller, setSeller] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [hasAlert, setHasAlert] = useState(false);
 
-  const handleWishlistPress = () => {
-    setIsWishlisted(!isWishlisted);
+  // Fetch product and seller data
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!productId) {
+        Alert.alert('Error', 'Product ID is missing');
+        router.back();
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Fetch product
+        const productData = await getProduct(productId);
+        if (!productData) {
+          Alert.alert('Error', 'Product not found');
+          router.back();
+          return;
+        }
+        setProduct(productData);
+
+        // Fetch seller profile
+        const { data: sellerData, error: sellerError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', productData.seller_id)
+          .single();
+
+        if (sellerError) {
+          console.error('Error fetching seller:', sellerError);
+        } else {
+          setSeller(sellerData);
+        }
+
+        // Check if product is in wishlist
+        const userId = useAuthStore.getState().user?.id;
+        if (userId) {
+          const { data: wishlistData } = await supabase
+            .from('wishlist')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('product_id', productId)
+            .single();
+          
+          setIsWishlisted(!!wishlistData);
+        }
+      } catch (error) {
+        console.error('Error fetching product data:', error);
+        Alert.alert('Error', 'Failed to load product details');
+        router.back();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductData();
+  }, [productId]);
+
+  const handleWishlistPress = async () => {
+    const userId = useAuthStore.getState().user?.id;
+    if (!userId) {
+      Alert.alert('Login Required', 'Please log in to add items to your wishlist');
+      return;
+    }
+
+    const shouldBeWishlisted = !isWishlisted;
+
+    try {
+      if (shouldBeWishlisted) {
+        // Add to wishlist
+        const { error } = await supabase
+          .from('wishlist')
+          .insert({
+            user_id: userId,
+            product_id: productId,
+          });
+
+        if (error) {
+          if (error.code === '23505') {
+            // Duplicate entry - already in wishlist, update state anyway
+            setIsWishlisted(true);
+          } else {
+            console.error('Error adding to wishlist:', error);
+            Alert.alert('Error', `Failed to add to wishlist: ${error.message}`);
+            return;
+          }
+        } else {
+          setIsWishlisted(true);
+        }
+      } else {
+        // Remove from wishlist
+        const { error } = await supabase
+          .from('wishlist')
+          .delete()
+          .eq('user_id', userId)
+          .eq('product_id', productId);
+
+        if (error) {
+          console.error('Error removing from wishlist:', error);
+          Alert.alert('Error', `Failed to remove from wishlist: ${error.message}`);
+          return;
+        }
+        setIsWishlisted(false);
+      }
+    } catch (error: any) {
+      console.error('Error updating wishlist:', error);
+      Alert.alert('Error', `Failed to update wishlist: ${error?.message || 'Unknown error'}`);
+    }
   };
 
   const handleAlertPress = () => {
     setHasAlert(!hasAlert);
   };
 
-  const handleAddToCart = () => {
-    router.push('/checkout');
+  const handleContactSeller = () => {
+    // Navigate to chat with seller
+    router.push({
+      pathname: '/chat',
+      params: { 
+        sellerId: product.seller_id,
+        productId: product.id 
+      }
+    });
   };
+
+  const handleBuyNow = () => {
+    // For instant listings, go directly to checkout
+    if (!product) return;
+    router.push({
+      pathname: '/checkout',
+      params: { 
+        productId: product.id,
+        listingType: 'instant'
+      }
+    });
+  };
+
+  // Format price
+  const formatPrice = (price: number) => {
+    return `R ${price.toFixed(2)}`;
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+    return `${Math.floor(diffDays / 365)} years ago`;
+  };
+
+  // Build specifications from product data
+  const getSpecifications = () => {
+    if (!product) return [];
+    const specs = [];
+    if (product.brand) specs.push({ label: 'Brand', value: product.brand });
+    if (product.model) specs.push({ label: 'Model', value: product.model });
+    if (product.category) specs.push({ label: 'Category', value: product.category });
+    specs.push({ label: 'Condition', value: product.condition });
+    return specs;
+  };
+
+  // Show skeleton loading state
+  if (loading || !product) {
+    return <ProductDetailSkeleton />;
+  }
 
   return (
     <KeyboardAvoidingView
@@ -144,7 +286,7 @@ export default function BuyItemScreen() {
       {/* Scrollable Content */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: productData.isPrivateSale ? 120 : 100 }}
+        contentContainerStyle={{ paddingBottom: product.listing_type === 'instant' ? 100 : 120 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
@@ -161,21 +303,33 @@ export default function BuyItemScreen() {
               setCurrentImageIndex(index);
             }}
           >
-            {productData.images.map((image, index) => (
-              <Image
-                key={index}
-                source={{ uri: image }}
-                style={{
-                  width: SCREEN_WIDTH,
-                  height: SCREEN_WIDTH,
-                }}
-                contentFit="cover"
-              />
-            ))}
+            {product.images && product.images.length > 0 ? (
+              product.images.map((image, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: image }}
+                  style={{
+                    width: SCREEN_WIDTH,
+                    height: SCREEN_WIDTH,
+                  }}
+                  contentFit="cover"
+                />
+              ))
+            ) : (
+              <View style={{
+                width: SCREEN_WIDTH,
+                height: SCREEN_WIDTH,
+                backgroundColor: colors.iconBackground,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <Ionicons name="image-outline" size={64} color={colors.secondaryTextColor} />
+              </View>
+            )}
           </ScrollView>
 
           {/* Image Indicators */}
-          {productData.images.length > 1 && (
+          {product.images && product.images.length > 1 && (
             <View
               style={{
                 position: 'absolute',
@@ -187,7 +341,7 @@ export default function BuyItemScreen() {
                 gap: 8,
               }}
             >
-              {productData.images.map((_, index) => (
+              {product.images.map((_, index) => (
                 <View
                   key={index}
                   style={{
@@ -215,12 +369,45 @@ export default function BuyItemScreen() {
         >
           {/* Product Name & Price */}
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: colors.textColor, fontSize: 30, fontWeight: 'bold', marginBottom: 8 }}>
-              {productData.name}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+              <Text style={{ color: colors.textColor, fontSize: 30, fontWeight: 'bold', flex: 1 }}>
+                {product.name}
+              </Text>
+              {/* Listing Type Badge */}
+              {product.listing_type && (
+                <View
+                  style={{
+                    backgroundColor: product.listing_type === 'instant' ? '#10B98120' : '#EC489920',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderWidth: 1,
+                    borderColor: product.listing_type === 'instant' ? '#10B981' : '#EC4899',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Ionicons 
+                    name={product.listing_type === 'instant' ? 'flash' : 'storefront'} 
+                    size={14} 
+                    color={product.listing_type === 'instant' ? '#10B981' : '#EC4899'} 
+                  />
+                  <Text 
+                    style={{ 
+                      color: product.listing_type === 'instant' ? '#10B981' : '#EC4899', 
+                      fontSize: 12, 
+                      fontWeight: '600' 
+                    }}
+                  >
+                    {product.listing_type === 'instant' ? 'Instant Sale' : 'Marketplace'}
+                  </Text>
+                </View>
+              )}
+            </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Text style={{ color: colors.textColor, fontSize: 30, fontWeight: 'bold' }}>
-                {productData.price}
+                {formatPrice(product.price)}
               </Text>
               <View
                 style={{
@@ -231,14 +418,14 @@ export default function BuyItemScreen() {
                 }}
               >
                 <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                  {productData.condition}
+                  {product.condition}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* AI Grade Quick Overview */}
-          {productData.aiCertified && (
+          {/* AI Grade Quick Overview - Placeholder for future AI features */}
+          {false && (
             <View
               style={{
                 backgroundColor: colors.cardBackground,
@@ -285,7 +472,7 @@ export default function BuyItemScreen() {
                     }}
                   >
                     <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' }}>
-                      Grade {productData.aiGrade}
+                      Grade A+
                     </Text>
                   </View>
                 </View>
@@ -308,14 +495,14 @@ export default function BuyItemScreen() {
                     >
                       <View
                         style={{
-                          width: `${productData.aiScore}%`,
+                          width: '92%',
                           height: '100%',
                           backgroundColor: '#10B981',
                         }}
                       />
                     </View>
                     <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
-                      {productData.aiScore}/100
+                      92/100
                     </Text>
                   </View>
                 </View>
@@ -325,7 +512,10 @@ export default function BuyItemScreen() {
 
           {/* Seller Info */}
           <Pressable
-            onPress={() => router.push('/seller-profile')}
+            onPress={() => router.push({
+              pathname: '/seller-profile',
+              params: { sellerId: product.seller_id }
+            })}
             style={{
               backgroundColor: colors.cardBackground,
               borderRadius: 16,
@@ -339,15 +529,23 @@ export default function BuyItemScreen() {
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <Ionicons name="person-circle" size={40} color={colors.secondaryTextColor} />
+              {seller?.avatar_url ? (
+                <Image
+                  source={{ uri: seller.avatar_url }}
+                  style={{ width: 40, height: 40, borderRadius: 20 }}
+                  contentFit="cover"
+                />
+              ) : (
+                <Ionicons name="person-circle" size={40} color={colors.secondaryTextColor} />
+              )}
               <View style={{ marginLeft: 12, flex: 1 }}>
                 <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
-                  {productData.sellerName}
+                  {seller?.username || seller?.full_name || 'Unknown Seller'}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="star" size={14} color="#F59E0B" />
                   <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                    {productData.sellerRating} • {productData.location}
+                    4.8 {/* TODO: Calculate from reviews */}
                   </Text>
                 </View>
               </View>
@@ -355,44 +553,47 @@ export default function BuyItemScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.secondaryTextColor} />
           </Pressable>
 
-          {/* Private Chat Component - Only for Private Sales */}
-          {productData.isPrivateSale && (
+          {/* Chat Component - Only for Marketplace Listings */}
+          {product.listing_type === 'marketplace' && (
             <View style={{ marginBottom: 24 }}>
               <PrivateChat
-                initialMessage={`Hi, I'm interested in your ${productData.name}`}
+                initialMessage={`Hi, I'm interested in your ${product.name}`}
                 onSend={(message) => {
                   console.log('Message sent:', message);
-                  // Handle sending message
+                  // Handle sending message - create chat with seller
                 }}
               />
             </View>
           )}
 
           {/* Description */}
-          <View style={{ marginBottom: 24 }}>
-            <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
-              Description
-            </Text>
-            <Text style={{ color: colors.secondaryTextColor, fontSize: 16, lineHeight: 24 }}>
-              {productData.description}
-            </Text>
-          </View>
+          {product.description && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+                Description
+              </Text>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 16, lineHeight: 24 }}>
+                {product.description}
+              </Text>
+            </View>
+          )}
 
           {/* Specifications */}
-          <View style={{ marginBottom: 24 }}>
-            <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
-              Specifications
-            </Text>
-            <View
-              style={{
-                backgroundColor: colors.cardBackground,
-                borderRadius: 16,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: colors.borderColor,
-              }}
-            >
-              {productData.specifications.map((spec, index) => (
+          {getSpecifications().length > 0 && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+                Specifications
+              </Text>
+              <View
+                style={{
+                  backgroundColor: colors.cardBackground,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: colors.borderColor,
+                }}
+              >
+                {getSpecifications().map((spec, index) => (
                 <View
                   key={index}
                   style={{
@@ -401,7 +602,7 @@ export default function BuyItemScreen() {
                     paddingVertical: 16,
                     paddingHorizontal: 16,
                     borderBottomWidth:
-                      index < productData.specifications.length - 1 ? 1 : 0,
+                      index < getSpecifications().length - 1 ? 1 : 0,
                     borderBottomColor: colors.borderColor,
                   }}
                 >
@@ -411,8 +612,9 @@ export default function BuyItemScreen() {
                   </Text>
                 </View>
               ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Listing Info */}
           <View
@@ -435,13 +637,7 @@ export default function BuyItemScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="time-outline" size={16} color={colors.secondaryTextColor} />
                 <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                  Listed {productData.listedDate}
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="location-outline" size={16} color={colors.secondaryTextColor} />
-                <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
-                  {productData.location}
+                  Listed {formatDate(product.created_at)}
                 </Text>
               </View>
             </View>
@@ -451,32 +647,32 @@ export default function BuyItemScreen() {
       </ScrollView>
 
       {/* Action Buttons - Fixed to Bottom */}
-      {!productData.isPrivateSale && (
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            paddingLeft: Math.max(insets.left, 24),
-            paddingRight: Math.max(insets.right, 24),
-            paddingBottom: insets.bottom + 16,
-            paddingTop: 16,
-            backgroundColor: colors.backgroundColor,
-            flexDirection: 'row',
-            gap: 12,
-            borderTopWidth: 1,
-            borderTopColor: colors.borderColor,
-          }}
-        >
-          {/* Add to Cart Button */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingLeft: Math.max(insets.left, 24),
+          paddingRight: Math.max(insets.right, 24),
+          paddingBottom: insets.bottom + 16,
+          paddingTop: 16,
+          backgroundColor: colors.backgroundColor,
+          flexDirection: 'row',
+          gap: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.borderColor,
+        }}
+      >
+        {product.listing_type === 'instant' ? (
+          /* Instant Buy Button - For Platform Sales */
           <Pressable
-            onPress={handleAddToCart}
+            onPress={handleBuyNow}
             style={{ flex: 1 }}
           >
             {({ pressed }) => (
               <LinearGradient
-                colors={['#EC4899', '#F97316']}
+                colors={['#10B981', '#059669']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
@@ -486,16 +682,48 @@ export default function BuyItemScreen() {
                   opacity: pressed ? 0.8 : 1,
                   justifyContent: 'center',
                   alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
                 }}
               >
+                <Ionicons name="flash" size={20} color="#FFFFFF" />
                 <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
-                  Add to Cart
+                  Buy Now
                 </Text>
               </LinearGradient>
             )}
           </Pressable>
-        </View>
-      )}
+        ) : (
+          /* Marketplace Button - Contact Seller Only */
+          <Pressable
+            onPress={handleContactSeller}
+            style={{ flex: 1 }}
+          >
+            {({ pressed }) => (
+              <View
+                style={{
+                  borderRadius: 16,
+                  height: 56,
+                  width: '100%',
+                  opacity: pressed ? 0.8 : 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: colors.cardBackground,
+                  borderWidth: 1,
+                  borderColor: colors.borderColor,
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+              >
+                <Ionicons name="chatbubble-outline" size={20} color={colors.textColor} />
+                <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+                  Contact Seller
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        )}
+      </View>
     </KeyboardAvoidingView>
   );
 }

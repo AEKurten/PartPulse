@@ -2,12 +2,14 @@ import { useTheme } from '@/contexts/theme-context';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'expo-image';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, RefreshControl, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserData } from '../Helpers/UserDetailsHelper';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -20,7 +22,7 @@ const DEFAULT_RIG_SPECS = {
   gpu: '',
   motherboard: '',
   ram: '',
-  storage: '',
+  storage: [] as Array<{ id?: string; type: string; capacity: string; model: string }>,
   psu: '',
   case: '',
 };
@@ -30,34 +32,242 @@ export default function ProfileScreen() {
   const { actualTheme, setTheme } = useTheme();
   const [rigSpecs, setRigSpecs] = useState(DEFAULT_RIG_SPECS);
   const [isEditingRig, setIsEditingRig] = useState(false);
+  const [rigId, setRigId] = useState<string | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [editedUsername, setEditedUsername] = useState('');
+  const [editedBio, setEditedBio] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    activeListings: 0,
+    itemsSold: 0,
+    itemsBought: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   //userdata
   const USER_DATA = useUserData();
+  const { profile, setUserDetails } = useProfileStore();
+  const { user } = useAuthStore();
 
-  useEffect(() => {
-    // Load saved rig specs
-    const loadPreferences = async () => {
+  // Load rig specs from database
+  const loadRigSpecs = async () => {
+      if (!user?.id) return;
+
       try {
-        const savedRigSpecs = await AsyncStorage.getItem('rigSpecs');
-        if (savedRigSpecs) {
-          setRigSpecs(JSON.parse(savedRigSpecs));
+        // Fetch primary rig for user
+        const { data, error } = await supabase
+          .from('user_rigs')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_primary', true)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+          console.error('Error loading rig specs:', error);
+          return;
+        }
+
+        if (data) {
+          setRigId(data.id);
+          setRigSpecs({
+            cpu: data.cpu || '',
+            gpu: data.gpu || '',
+            motherboard: data.motherboard || '',
+            ram: data.ram || '',
+            storage: [],
+            psu: data.psu || '',
+            case: data.pc_case || '',
+          });
+
+          // Fetch storage entries for this rig
+          const { data: storageData } = await supabase
+            .from('user_rig_storage')
+            .select('*')
+            .eq('rig_id', data.id)
+            .order('created_at', { ascending: true });
+
+          if (storageData && storageData.length > 0) {
+            setRigSpecs(prev => ({
+              ...prev,
+              storage: storageData.map(s => ({
+                id: s.id,
+                type: s.type,
+                capacity: s.capacity || '',
+                model: s.model || '',
+              })),
+            }));
+          }
         }
       } catch (error) {
-        console.error('Error loading preferences:', error);
+        console.error('Error loading rig specs:', error);
       }
     };
-    loadPreferences();
-  }, []);
+
+  useEffect(() => {
+    loadRigSpecs();
+  }, [user?.id]);
+
+  // Initialize edit form when entering edit mode
+  useEffect(() => {
+    if (isEditingProfile && profile) {
+      setEditedUsername(profile.username || '');
+      setEditedBio(profile.bio || '');
+      setAvatarPreview(null);
+    }
+  }, [isEditingProfile, profile]);
+
+  // Fetch user stats
+  const fetchStats = async () => {
+      if (!user?.id) {
+        setLoadingStats(false);
+        return;
+      }
+
+      try {
+        setLoadingStats(true);
+
+        // Fetch active listings
+        const { count: activeListingsCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+          .eq('status', 'active');
+
+        // Fetch items sold (orders where user is seller and status is delivered)
+        const { count: itemsSoldCount } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+          .in('status', ['delivered', 'confirmed', 'shipped']);
+
+        // Fetch items bought (orders where user is buyer and status is delivered)
+        const { count: itemsBoughtCount } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('buyer_id', user.id)
+          .in('status', ['delivered', 'confirmed', 'shipped']);
+
+        setStats({
+          activeListings: activeListingsCount || 0,
+          itemsSold: itemsSoldCount || 0,
+          itemsBought: itemsBoughtCount || 0,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+  useEffect(() => {
+    fetchStats();
+  }, [user?.id]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadRigSpecs(), fetchStats()]);
+    setRefreshing(false);
+  };
 
   const handleThemeToggle = async (value: boolean) => {
     await setTheme(value ? 'dark' : 'light');
   };
 
   const handleSaveRigSpecs = async () => {
-    // Save rig specs to storage
-    await AsyncStorage.setItem('rigSpecs', JSON.stringify(rigSpecs));
-    setIsEditingRig(false);
-    // In a real app, this would trigger AI analysis
+    if (!user?.id) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    try {
+      let currentRigId = rigId;
+
+      // Check if user already has a primary rig
+      if (!currentRigId) {
+        const { data: existingRig } = await supabase
+          .from('user_rigs')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_primary', true)
+          .single();
+
+        if (existingRig) {
+          currentRigId = existingRig.id;
+        }
+      }
+
+      if (currentRigId) {
+        // Update existing rig
+        const { error } = await supabase
+          .from('user_rigs')
+          .update({
+            cpu: rigSpecs.cpu || null,
+            gpu: rigSpecs.gpu || null,
+            motherboard: rigSpecs.motherboard || null,
+            ram: rigSpecs.ram || null,
+            psu: rigSpecs.psu || null,
+            pc_case: rigSpecs.case || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', currentRigId);
+
+        if (error) throw error;
+      } else {
+        // Insert new rig
+        const { data: newRig, error } = await supabase
+          .from('user_rigs')
+          .insert({
+            user_id: user.id,
+            cpu: rigSpecs.cpu || null,
+            gpu: rigSpecs.gpu || null,
+            motherboard: rigSpecs.motherboard || null,
+            ram: rigSpecs.ram || null,
+            psu: rigSpecs.psu || null,
+            pc_case: rigSpecs.case || null,
+            is_primary: true,
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        currentRigId = newRig.id;
+        setRigId(currentRigId);
+      }
+
+      // Delete all existing storage entries for this rig
+      await supabase
+        .from('user_rig_storage')
+        .delete()
+        .eq('rig_id', currentRigId);
+
+      // Insert new storage entries
+      if (rigSpecs.storage.length > 0) {
+        const storageToInsert = rigSpecs.storage
+          .filter(s => s.type && (s.capacity || s.model))
+          .map(s => ({
+            rig_id: currentRigId,
+            type: s.type,
+            capacity: s.capacity || null,
+            model: s.model || null,
+          }));
+
+        if (storageToInsert.length > 0) {
+          const { error: storageError } = await supabase
+            .from('user_rig_storage')
+            .insert(storageToInsert);
+
+          if (storageError) throw storageError;
+        }
+      }
+
+      setIsEditingRig(false);
+      Alert.alert('Success', 'Rig specs saved successfully');
+    } catch (error) {
+      console.error('Error saving rig specs:', error);
+      Alert.alert('Error', 'Failed to save rig specs. Please try again.');
+    }
   };
 
   const handleGetAISuggestions = () => {
@@ -83,6 +293,206 @@ export default function ProfileScreen() {
     }
   }
 
+  // Compress image for avatar
+  const compressImage = async (uri: string): Promise<string> => {
+    const fileInfo = await FileSystem.getInfoAsync(uri);
+    if (!fileInfo.exists) {
+      throw new Error('File does not exist');
+    }
+
+    let currentUri = uri;
+    let quality = 0.8;
+    const targetSize = 2 * 1024 * 1024; // 2MB
+
+    // Get initial size if available
+    let currentSize = 'size' in fileInfo ? fileInfo.size : targetSize + 1;
+
+    while (currentSize > targetSize && quality > 0.1) {
+      const manipResult = await ImageManipulator.manipulateAsync(
+        currentUri,
+        [{ resize: { width: 800 } }], // Resize to max 800px for avatar
+        { compress: quality, format: ImageManipulator.SaveFormat.JPEG, base64: false }
+      );
+      currentUri = manipResult.uri;
+      const newFileInfo = await FileSystem.getInfoAsync(currentUri);
+      currentSize = 'size' in newFileInfo ? newFileInfo.size : 0;
+      quality -= 0.1;
+    }
+    return currentUri;
+  };
+
+  // Request permissions for image picker
+  const requestImagePermissions = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'We need access to your photos to upload an avatar.');
+      return false;
+    }
+    return true;
+  };
+
+  // Pick avatar image
+  const pickAvatar = async () => {
+    const hasPermission = await requestImagePermissions();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1], // Square for avatar
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      try {
+        const compressedUri = await compressImage(result.assets[0].uri);
+        setAvatarPreview(compressedUri);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        Alert.alert('Error', 'Failed to process image. Please try again.');
+      }
+    }
+  };
+
+  // Upload avatar to Supabase Storage
+  const uploadAvatar = async (uri: string): Promise<string> => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (!fileInfo.exists) {
+        throw new Error('File does not exist');
+      }
+
+      const fileExtension = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const contentType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
+      // Use same filename pattern as product images to avoid RLS issues
+      const filename = `avatar_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
+
+      // Read as base64
+      const base64Data = await FileSystem.readAsStringAsync(uri, {
+        encoding: 'base64',
+      });
+
+      // Convert base64 to ArrayBuffer
+      let binaryString: string;
+      if (Platform.OS === 'web') {
+        binaryString = atob(base64Data);
+      } else {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+        let output = '';
+        let i = 0;
+        const cleanBase64 = base64Data.replace(/[^A-Za-z0-9\+\/\=]/g, '');
+        while (i < cleanBase64.length) {
+          const enc1 = chars.indexOf(cleanBase64.charAt(i++));
+          const enc2 = chars.indexOf(cleanBase64.charAt(i++));
+          const enc3 = chars.indexOf(cleanBase64.charAt(i++));
+          const enc4 = chars.indexOf(cleanBase64.charAt(i++));
+          const chr1 = (enc1 << 2) | (enc2 >> 4);
+          const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+          const chr3 = ((enc3 & 3) << 6) | enc4;
+          output += String.fromCharCode(chr1);
+          if (enc3 !== 64) output += String.fromCharCode(chr2);
+          if (enc4 !== 64) output += String.fromCharCode(chr3);
+        }
+        binaryString = output;
+      }
+
+      const byteNumbers = new Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        byteNumbers[i] = binaryString.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const arrayBuffer = byteArray.buffer;
+
+      // Upload to Product-images bucket (which we know has proper RLS policies)
+      // Use upsert: false to match product image upload pattern
+      const { error: uploadError } = await supabase.storage
+        .from('Product-images')
+        .upload(filename, arrayBuffer, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const publicUrl = supabase.storage
+        .from('Product-images')
+        .getPublicUrl(filename);
+      return publicUrl.data.publicUrl;
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Save profile changes
+  const handleSaveProfile = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    if (!editedUsername.trim()) {
+      Alert.alert('Error', 'Username is required');
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      let avatarUrl = profile?.avatar_url || null;
+
+      // Upload new avatar if preview exists
+      if (avatarPreview) {
+        avatarUrl = await uploadAvatar(avatarPreview);
+      }
+
+      // Update profile in database
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: editedUsername.trim(),
+          bio: editedBio.trim() || null,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update store
+      setUserDetails({
+        username: editedUsername.trim(),
+        bio: editedBio.trim() || null,
+        avatar_url: avatarUrl,
+      });
+
+      setIsEditingProfile(false);
+      setAvatarPreview(null);
+      Alert.alert('Success', 'Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setIsEditingProfile(false);
+    setAvatarPreview(null);
+    setEditedUsername(profile?.username || '');
+    setEditedBio(profile?.bio || '');
+  };
+
   const colors = useThemeColors();
   const backgroundColor = colors.backgroundColor;
   const cardBackground = colors.cardBackground;
@@ -104,6 +514,14 @@ export default function ProfileScreen() {
       <StatusBar style={colors.statusBarStyle} />
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#EC4899"
+            colors={["#EC4899"]}
+          />
+        }
         contentContainerStyle={{
           paddingLeft: Math.max(insets.left, 24),
           paddingRight: Math.max(insets.right, 24),
@@ -144,47 +562,204 @@ export default function ProfileScreen() {
             borderRadius: 16,
             padding: 20,
             marginBottom: 24,
-            flexDirection: 'row',
-            alignItems: 'center',
             borderWidth: 1,
             borderColor: borderColor,
           }}
         >
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              overflow: 'hidden',
-              marginRight: 16,
-              backgroundColor: iconBackground,
-            }}
-          >
-            <Image
-              source={{ uri: USER_DATA?.avatar }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="cover"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
-              {USER_DATA?.name}
-            </Text>
-            <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
-              {USER_DATA?.email}
-            </Text>
-            <Pressable
-              onPress={() => {
-                // Navigate to edit profile
-                console.log('Edit profile');
-              }}
-              style={{ marginTop: 8 }}
-            >
-              <Text className="text-pink-500 text-sm font-medium">
-                Edit Profile
-              </Text>
-            </Pressable>
-          </View>
+          {isEditingProfile ? (
+            /* Edit Mode */
+            <View>
+              <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                <View style={{ position: 'relative' }}>
+                  <Pressable
+                    onPress={pickAvatar}
+                    disabled={isUploadingAvatar}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      overflow: 'hidden',
+                      backgroundColor: iconBackground,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      borderColor: borderColor,
+                    }}
+                  >
+                    {isUploadingAvatar ? (
+                      <ActivityIndicator size="small" color="#EC4899" />
+                    ) : avatarPreview ? (
+                      <Image
+                        source={{ uri: avatarPreview }}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit="cover"
+                      />
+                    ) : profile?.avatar_url ? (
+                      <Image
+                        source={{ uri: profile.avatar_url }}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <Ionicons name="person-circle" size={80} color={secondaryTextColor} />
+                    )}
+                  </Pressable>
+                  <View
+                    style={{
+                      position: 'absolute',
+                      bottom: -2,
+                      right: -2,
+                      backgroundColor: '#EC4899',
+                      borderRadius: 12,
+                      width: 28,
+                      height: 28,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      borderWidth: 2,
+                      borderColor: cardBackground,
+                      zIndex: 10,
+                    }}
+                  >
+                    <Ionicons name="camera" size={14} color="#FFFFFF" />
+                  </View>
+                </View>
+                <Text style={{ color: secondaryTextColor, fontSize: 12, marginTop: 8 }}>
+                  Tap avatar to change
+                </Text>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ color: textColor, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
+                  Username
+                </Text>
+                <TextInput
+                  value={editedUsername}
+                  onChangeText={setEditedUsername}
+                  style={{
+                    backgroundColor: inputBackground,
+                    borderRadius: 12,
+                    padding: 12,
+                    color: textColor,
+                    borderWidth: 1,
+                    borderColor: borderColor,
+                  }}
+                  placeholder="Enter username"
+                  placeholderTextColor={secondaryTextColor}
+                />
+              </View>
+
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ color: textColor, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
+                  Bio
+                </Text>
+                <TextInput
+                  value={editedBio}
+                  onChangeText={setEditedBio}
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    backgroundColor: inputBackground,
+                    borderRadius: 12,
+                    padding: 12,
+                    color: textColor,
+                    borderWidth: 1,
+                    borderColor: borderColor,
+                    minHeight: 100,
+                    textAlignVertical: 'top',
+                  }}
+                  placeholder="Tell us about yourself..."
+                  placeholderTextColor={secondaryTextColor}
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <Pressable
+                  onPress={handleCancelEdit}
+                  disabled={isUploadingAvatar}
+                  style={{
+                    flex: 1,
+                    backgroundColor: iconBackground,
+                    borderRadius: 12,
+                    padding: 14,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: borderColor,
+                    opacity: isUploadingAvatar ? 0.5 : 1,
+                  }}
+                >
+                  <Text style={{ color: textColor, fontSize: 16, fontWeight: '600' }}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSaveProfile}
+                  disabled={isUploadingAvatar}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#EC4899',
+                    borderRadius: 12,
+                    padding: 14,
+                    alignItems: 'center',
+                    opacity: isUploadingAvatar ? 0.5 : 1,
+                  }}
+                >
+                  {isUploadingAvatar ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+                      Save
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            /* View Mode */
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  overflow: 'hidden',
+                  marginRight: 16,
+                  backgroundColor: iconBackground,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                {USER_DATA?.avatar ? (
+                  <Image
+                    source={{ uri: USER_DATA.avatar }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Ionicons name="person-circle" size={80} color={secondaryTextColor} />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
+                  {USER_DATA?.name}
+                </Text>
+                <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+                  {USER_DATA?.email}
+                </Text>
+                {profile?.bio && (
+                  <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 8 }}>
+                    {profile.bio}
+                  </Text>
+                )}
+                <Pressable
+                  onPress={() => setIsEditingProfile(true)}
+                  style={{ marginTop: 8 }}
+                >
+                  <Text style={{ color: '#EC4899', fontSize: 14, fontWeight: '600' }}>
+                    Edit Profile
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Quick Overview Section */}
@@ -220,10 +795,10 @@ export default function ProfileScreen() {
               >
                 <Ionicons name="list-outline" size={24} color="#EC4899" />
               </View>
-              <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
-                3
+              <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>
+                {loadingStats ? '...' : stats.activeListings}
               </Text>
-              <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+              <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4, textAlign: 'center' }}>
                 Active Listings
               </Text>
             </Pressable>
@@ -255,10 +830,10 @@ export default function ProfileScreen() {
               >
                 <Ionicons name="checkmark-circle-outline" size={24} color="#10B981" />
               </View>
-              <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
-                12
+              <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>
+                {loadingStats ? '...' : stats.itemsSold}
               </Text>
-              <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+              <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4, textAlign: 'center' }}>
                 Sold Items
               </Text>
             </Pressable>
@@ -290,10 +865,10 @@ export default function ProfileScreen() {
               >
                 <Ionicons name="bag-outline" size={24} color="#3B82F6" />
               </View>
-              <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
-                8
+              <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>
+                {loadingStats ? '...' : stats.itemsBought}
               </Text>
-              <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+              <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4, textAlign: 'center' }}>
                 Bought Items
               </Text>
             </Pressable>
@@ -325,20 +900,65 @@ export default function ProfileScreen() {
                 }}
               >
                 <Ionicons name="create-outline" size={20} color="#EC4899" />
-                <Text className="text-pink-500 text-base font-medium">
+                <Text style={{ color: '#EC4899', fontSize: 16, fontWeight: '600' }}>
                   Edit
                 </Text>
               </Pressable>
             ) : (
               <View style={{ flexDirection: 'row', gap: 20 }}>
                 <Pressable
-                  onPress={() => {
+                  onPress={async () => {
+                    // Reload rig specs from database on cancel
+                    if (user?.id) {
+                      const { data } = await supabase
+                        .from('user_rigs')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .eq('is_primary', true)
+                        .single();
+
+                      if (data) {
+                        setRigId(data.id);
+                        setRigSpecs({
+                          cpu: data.cpu || '',
+                          gpu: data.gpu || '',
+                          motherboard: data.motherboard || '',
+                          ram: data.ram || '',
+                          storage: [],
+                          psu: data.psu || '',
+                          case: data.pc_case || '',
+                        });
+
+                        // Fetch storage entries
+                        const { data: storageData } = await supabase
+                          .from('user_rig_storage')
+                          .select('*')
+                          .eq('rig_id', data.id)
+                          .order('created_at', { ascending: true });
+
+                        if (storageData && storageData.length > 0) {
+                          setRigSpecs(prev => ({
+                            ...prev,
+                            storage: storageData.map(s => ({
+                              id: s.id,
+                              type: s.type,
+                              capacity: s.capacity || '',
+                              model: s.model || '',
+                            })),
+                          }));
+                        }
+                      } else {
+                        setRigId(null);
+                        setRigSpecs(DEFAULT_RIG_SPECS);
+                      }
+                    } else {
+                      setRigSpecs(DEFAULT_RIG_SPECS);
+                    }
                     setIsEditingRig(false);
-                    setRigSpecs(DEFAULT_RIG_SPECS);
                   }}
                   style={{ paddingVertical: 8, paddingHorizontal: 4 }}
                 >
-                  <Text className="text-neutral-300 text-base font-medium">
+                  <Text style={{ color: secondaryTextColor, fontSize: 16, fontWeight: '600' }}>
                     Cancel
                   </Text>
                 </Pressable>
@@ -346,7 +966,7 @@ export default function ProfileScreen() {
                   onPress={handleSaveRigSpecs}
                   style={{ paddingVertical: 8, paddingHorizontal: 4 }}
                 >
-                  <Text className="text-pink-500 text-base font-medium">
+                  <Text style={{ color: '#EC4899', fontSize: 16, fontWeight: '600' }}>
                     Save
                   </Text>
                 </Pressable>
@@ -706,93 +1326,239 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {/* Row 3: Storage, PSU & Case */}
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              {/* Storage Card */}
-              <View style={{ flex: 1 }}>
+            {/* Row 3: Storage (Full Width), PSU & Case */}
+            {/* Storage Section - Full Width */}
+            <View>
+              <View
+                style={{
+                  backgroundColor: cardBackground,
+                  borderRadius: 16,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: rigSpecs.storage.length > 0 ? '#8B5CF6' + '40' : borderColor,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: isEditingRig ? 12 : 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12   }}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: '#8B5CF6' + '20',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 12,
+                      }}
+                    >
+                      <Ionicons name="disc-outline" size={20} color="#8B5CF6" />
+                    </View>
+                    <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>Storage</Text>
+                  </View>
+                  {isEditingRig && (
+                    <Pressable
+                      onPress={() => {
+                        setRigSpecs({
+                          ...rigSpecs,
+                          storage: [...rigSpecs.storage, { type: 'SSD', capacity: '', model: '' }],
+                        });
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingVertical: 6,
+                        paddingHorizontal: 12,
+                        backgroundColor: '#8B5CF6' + '20',
+                        borderRadius: 8,
+                      }}
+                    >
+                      <Ionicons name="add" size={16} color="#8B5CF6" />
+                      <Text style={{ color: '#8B5CF6', fontSize: 12, fontWeight: '600' }}>Add Drive</Text>
+                    </Pressable>
+                  )}
+                </View>
+
                 {isEditingRig ? (
-                  <View
-                    style={{
-                      backgroundColor: cardBackground,
-                      borderRadius: 16,
-                      padding: 16,
-                      borderWidth: 1,
-                      borderColor: borderColor,
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{ gap: 12 }}>
+                    {rigSpecs.storage.length === 0 ? (
                       <View
                         style={{
-                          width: 40,
-                          height: 40,
+                          backgroundColor: inputBackground,
                           borderRadius: 12,
-                          backgroundColor: '#8B5CF6' + '20',
-                          justifyContent: 'center',
+                          padding: 16,
+                          borderWidth: 1,
+                          borderColor: borderColor,
+                          borderStyle: 'dashed',
                           alignItems: 'center',
-                          marginRight: 12,
                         }}
                       >
-                        <Ionicons name="disc-outline" size={20} color="#8B5CF6" />
+                        <Text style={{ color: secondaryTextColor, fontSize: 14 }}>
+                          No storage drives added. Click "Add Drive" to add one.
+                        </Text>
                       </View>
-                      <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>Storage</Text>
-                    </View>
-                    <TextInput
-                      placeholder="e.g., 2TB NVMe SSD"
-                      placeholderTextColor={secondaryTextColor}
-                      value={rigSpecs.storage}
-                      onChangeText={(text) => setRigSpecs({ ...rigSpecs, storage: text })}
-                      style={{
-                        backgroundColor: inputBackground,
-                        borderRadius: 12,
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        fontSize: 13,
-                        color: textColor,
-                        borderWidth: 1,
-                        borderColor: borderColor,
-                      }}
-                    />
+                    ) : (
+                      rigSpecs.storage.map((storage, index) => (
+                        <View
+                          key={index}
+                          style={{
+                            backgroundColor: inputBackground,
+                            borderRadius: 12,
+                            padding: 16,
+                            borderWidth: 1,
+                            borderColor: borderColor,
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <Text style={{ color: textColor, fontSize: 14, fontWeight: '600' }}>
+                              Drive {index + 1}
+                            </Text>
+                            <Pressable
+                              onPress={() => {
+                                setRigSpecs({
+                                  ...rigSpecs,
+                                  storage: rigSpecs.storage.filter((_, i) => i !== index),
+                                });
+                              }}
+                              style={{
+                                padding: 4,
+                              }}
+                            >
+                              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                            </Pressable>
+                          </View>
+                          <View style={{ gap: 12 }}>
+                            <View>
+                              <Text style={{ color: secondaryTextColor, fontSize: 12, marginBottom: 6 }}>Type</Text>
+                              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                                {['SSD', 'HDD', 'NVMe', 'M.2', 'Other'].map((type) => (
+                                  <Pressable
+                                    key={type}
+                                    onPress={() => {
+                                      const newStorage = [...rigSpecs.storage];
+                                      newStorage[index].type = type;
+                                      setRigSpecs({ ...rigSpecs, storage: newStorage });
+                                    }}
+                                    style={{
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 8,
+                                      backgroundColor: storage.type === type ? '#8B5CF6' : cardBackground,
+                                      borderWidth: 1,
+                                      borderColor: storage.type === type ? '#8B5CF6' : borderColor,
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        color: storage.type === type ? '#FFFFFF' : textColor,
+                                        fontSize: 12,
+                                        fontWeight: storage.type === type ? '600' : '400',
+                                      }}
+                                    >
+                                      {type}
+                                    </Text>
+                                  </Pressable>
+                                ))}
+                              </View>
+                            </View>
+                            <View>
+                              <Text style={{ color: secondaryTextColor, fontSize: 12, marginBottom: 6 }}>Capacity</Text>
+                              <TextInput
+                                placeholder="e.g., 2TB, 500GB"
+                                placeholderTextColor={secondaryTextColor}
+                                value={storage.capacity}
+                                onChangeText={(text) => {
+                                  const newStorage = [...rigSpecs.storage];
+                                  newStorage[index].capacity = text;
+                                  setRigSpecs({ ...rigSpecs, storage: newStorage });
+                                }}
+                                style={{
+                                  backgroundColor: cardBackground,
+                                  borderRadius: 12,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 10,
+                                  fontSize: 13,
+                                  color: textColor,
+                                  borderWidth: 1,
+                                  borderColor: borderColor,
+                                }}
+                              />
+                            </View>
+                            <View>
+                              <Text style={{ color: secondaryTextColor, fontSize: 12, marginBottom: 6 }}>Model (Optional)</Text>
+                              <TextInput
+                                placeholder="e.g., Samsung 980 Pro"
+                                placeholderTextColor={secondaryTextColor}
+                                value={storage.model}
+                                onChangeText={(text) => {
+                                  const newStorage = [...rigSpecs.storage];
+                                  newStorage[index].model = text;
+                                  setRigSpecs({ ...rigSpecs, storage: newStorage });
+                                }}
+                                style={{
+                                  backgroundColor: cardBackground,
+                                  borderRadius: 12,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 10,
+                                  fontSize: 13,
+                                  color: textColor,
+                                  borderWidth: 1,
+                                  borderColor: borderColor,
+                                }}
+                              />
+                            </View>
+                          </View>
+                        </View>
+                      ))
+                    )}
                   </View>
                 ) : (
                   <Pressable
                     onPress={() => setIsEditingRig(true)}
-                    style={{
-                      backgroundColor: cardBackground,
-                      borderRadius: 16,
-                      padding: 16,
-                      borderWidth: 1,
-                      borderColor: rigSpecs.storage ? '#8B5CF6' + '40' : borderColor,
-                    }}
+                    style={{ width: '100%' }}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                      <View
+                    {rigSpecs.storage.length === 0 ? (
+                      <Text
                         style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 12,
-                          backgroundColor: '#8B5CF6' + '20',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          marginRight: 12,
+                          color: secondaryTextColor,
+                          fontSize: 14,
+                          fontWeight: '400',
                         }}
                       >
-                        <Ionicons name="disc-outline" size={20} color="#8B5CF6" />
+                        No storage drives specified
+                      </Text>
+                    ) : (
+                      <View style={{ gap: 8 }}>
+                        {rigSpecs.storage.map((storage, index) => (
+                          <View key={index} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <View
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor: '#8B5CF6',
+                              }}
+                            />
+                            <Text
+                              style={{
+                                color: textColor,
+                                fontSize: 14,
+                                fontWeight: '600',
+                              }}
+                            >
+                              {storage.type} {storage.capacity && `- ${storage.capacity}`} {storage.model && `(${storage.model})`}
+                            </Text>
+                          </View>
+                        ))}
                       </View>
-                      <Text style={{ color: secondaryTextColor, fontSize: 12, fontWeight: '500' }}>Storage</Text>
-                    </View>
-                    <Text
-                      style={{
-                        color: rigSpecs.storage ? textColor : secondaryTextColor,
-                        fontSize: 14,
-                        fontWeight: rigSpecs.storage ? '600' : '400',
-                      }}
-                      numberOfLines={2}
-                    >
-                      {rigSpecs.storage || 'Not specified'}
-                    </Text>
+                    )}
                   </Pressable>
                 )}
               </View>
+            </View>
+
+            {/* Row 4: PSU & Case */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
 
               {/* PSU Card */}
               <View style={{ flex: 1 }}>

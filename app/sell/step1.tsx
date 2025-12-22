@@ -1,3 +1,4 @@
+import { BrandModelSelector } from '@/components/brand-model-selector';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,8 @@ export default function SellStep1Screen() {
   const colors = useThemeColors();
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('');
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
   const [condition, setCondition] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -31,8 +34,8 @@ export default function SellStep1Screen() {
 
   const handleNext = async () => {
     // Basic validation
-    if (!itemName.trim() || !category.trim() || !condition.trim() || !description.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+    if (!itemName.trim() || !category.trim() || !brand.trim() || !model.trim() || !condition.trim() || !description.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields (including brand and model).');
       return;
     }
 
@@ -66,6 +69,9 @@ export default function SellStep1Screen() {
             price: parseFloat(price),
             condition: condition.split(' ')[0], // Store only the grade letter
             category: category,
+            brand: brand,
+            model: model,
+            status: 'active', // Set to active immediately after creation
           },
         ]).select();
 
@@ -252,6 +258,17 @@ export default function SellStep1Screen() {
             )}
           </View>
 
+          {/* Brand and Model Selector - Only show after category is selected */}
+          {category && (
+            <BrandModelSelector
+              category={category}
+              brand={brand}
+              model={model}
+              onBrandChange={setBrand}
+              onModelChange={setModel}
+            />
+          )}
+
           {/* Condition Dropdown */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
@@ -409,7 +426,7 @@ export default function SellStep1Screen() {
           {/* Next Button */}
           <Pressable
             onPress={handleNext}
-            disabled={!itemName || !category || !condition || !description}
+            disabled={!itemName || !category || !brand || !model || !condition || !description}
             style={{ width: '100%' }}
           >
             {({ pressed }) => (
@@ -421,7 +438,7 @@ export default function SellStep1Screen() {
                   borderRadius: 16,
                   height: 56,
                   width: '100%',
-                  opacity: (!itemName || !category || !condition || !description) ? 0.5 : pressed ? 0.8 : 1,
+                  opacity: (!itemName || !category || !brand || !model || !condition || !description) ? 0.5 : pressed ? 0.8 : 1,
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}

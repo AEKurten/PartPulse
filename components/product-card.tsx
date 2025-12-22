@@ -29,7 +29,9 @@ export function ProductCard({ id, name, price, condition, image, rating, onPress
 
   const handleWishlistPress = () => {
     const newState = !isWishlisted;
+    // Update local state optimistically
     setIsWishlisted(newState);
+    // Pass the NEW state (what we want it to be) to the handler
     onWishlistPress?.(id, newState);
   };
 
