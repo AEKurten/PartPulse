@@ -125,7 +125,7 @@ export function ProductCard({ id, name, price, condition, image, rating, onPress
               </Text>
             </View>
           </View>
-          <Text style={{ color: colors.textColor, fontWeight: 'bold', fontSize: 24, marginTop: 8 }}>{price}</Text>
+          <Text style={{ color: colors.textColor, fontWeight: 'bold', fontSize: 22, marginTop: 8 }}>{price ? "R " + price : "N/A"}</Text>
 
         </View>
       )}

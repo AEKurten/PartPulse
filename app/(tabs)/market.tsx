@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -24,132 +24,10 @@ interface Product {
   condition: string;
   category: string;
   brand: string;
-  image: string;
-  createdAt: Date;
+  images: string[];
+  created_at: Date;
+  Listing_Type: string;
 }
-
-const allProducts: Product[] = [
-  {
-    id: "1",
-    name: "RTX 4090",
-    price: "$1,599",
-    priceValue: 1599,
-    condition: "A+",
-    category: "GPU",
-    brand: "NVIDIA",
-    image:
-      "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-15"),
-  },
-  {
-    id: "2",
-    name: "Ryzen 9 7950X",
-    price: "$549",
-    priceValue: 549,
-    condition: "A+",
-    category: "CPU",
-    brand: "AMD",
-    image:
-      "https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-20"),
-  },
-  {
-    id: "3",
-    name: "32GB DDR5 RAM",
-    price: "$199",
-    priceValue: 199,
-    condition: "B",
-    category: "RAM",
-    brand: "Corsair",
-    image:
-      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-10"),
-  },
-  {
-    id: "4",
-    name: "1TB NVMe SSD",
-    price: "$89",
-    priceValue: 89,
-    condition: "B",
-    category: "Storage",
-    brand: "Samsung",
-    image:
-      "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-18"),
-  },
-  {
-    id: "5",
-    name: "NVIDIA GeForce RTX 4080 Super",
-    price: "$999",
-    priceValue: 999,
-    condition: "A+",
-    category: "GPU",
-    brand: "NVIDIA",
-    image:
-      "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-22"),
-  },
-  {
-    id: "6",
-    name: "Intel i9-14900K",
-    price: "$579",
-    priceValue: 579,
-    condition: "A",
-    category: "CPU",
-    brand: "Intel",
-    image:
-      "https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-12"),
-  },
-  {
-    id: "7",
-    name: "ASUS ROG Motherboard",
-    price: "$349",
-    priceValue: 349,
-    condition: "A+",
-    category: "Motherboard",
-    brand: "ASUS",
-    image:
-      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-25"),
-  },
-  {
-    id: "8",
-    name: "Corsair 850W PSU",
-    price: "$129",
-    priceValue: 129,
-    condition: "A",
-    category: "PSU",
-    brand: "Corsair",
-    image:
-      "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-08"),
-  },
-  {
-    id: "9",
-    name: "AMD Radeon RX 7900 XTX",
-    price: "$899",
-    priceValue: 899,
-    condition: "A",
-    category: "GPU",
-    brand: "AMD",
-    image:
-      "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-14"),
-  },
-  {
-    id: "10",
-    name: "MSI Z790 Motherboard",
-    price: "$299",
-    priceValue: 299,
-    condition: "A+",
-    category: "Motherboard",
-    brand: "MSI",
-    image:
-      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80",
-    createdAt: new Date("2024-01-19"),
-  },
-];
 
 const filterChips = ["All", "GPU", "CPU", "RAM", "Storage", "Motherboard"];
 
@@ -170,6 +48,25 @@ export default function MarketScreen() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+
+  //fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching products:', error.message);
+      } else {
+        console.log('Products fetched:', data);
+        setAllProducts(data);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -233,12 +130,12 @@ export default function MarketScreen() {
         break;
       case "newest":
       default:
-        products.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        products.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); 
         break;
     }
 
     return products;
-  }, [searchQuery, activeCategoryFilter, filters]);
+  }, [searchQuery, activeCategoryFilter, filters, allProducts]);
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
@@ -445,7 +342,7 @@ export default function MarketScreen() {
           paddingBottom: 24,
           gap: 16,
         }}
-        columnWrapperStyle={{ gap: 16 }}
+        columnWrapperStyle={{ gap: 0 }}
         renderItem={({ item }) => (
           <View style={{ flex: 1 }}>
             <ProductCard
@@ -453,7 +350,7 @@ export default function MarketScreen() {
               name={item.name}
               price={item.price}
               condition={item.condition}
-              image={item.image}
+              image={item.images[0]}
               onWishlistPress={handleWishlistPress}
               onPress={() => router.push("/buy-item")}
             />
