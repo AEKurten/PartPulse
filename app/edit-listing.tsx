@@ -1,5 +1,5 @@
 import { BrandModelSelector } from '@/components/brand-model-selector';
-import { TextSizes, PaddingSizes, getPadding } from '@/constants/platform-styles';
+import { TextSizes, PaddingSizes, getPadding, getFontSize } from '@/constants/platform-styles';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { getProduct } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
