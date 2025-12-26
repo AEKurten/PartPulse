@@ -1,7 +1,9 @@
 import { BrandModelSelector } from '@/components/brand-model-selector';
+import { TextSizes, PaddingSizes, getPadding } from '@/constants/platform-styles';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { getProduct } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
+import { getProductAnalytics } from '@/lib/analytics';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +31,15 @@ export default function EditListingScreen() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Analytics state
+  const [analytics, setAnalytics] = useState<{
+    viewCount: number;
+    clickCount: number;
+    shareCount: number;
+    impressionCount: number;
+  } | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   
   // Form state
   const [itemName, setItemName] = useState('');
@@ -86,6 +97,9 @@ export default function EditListingScreen() {
         if (productData.images && productData.images.length > 0) {
           setPhotos(productData.images);
         }
+
+        // Fetch analytics
+        await fetchAnalytics(productId);
       } catch (error) {
         console.error('Error fetching product:', error);
         Alert.alert('Error', 'Failed to load product');
@@ -97,6 +111,20 @@ export default function EditListingScreen() {
 
     fetchProduct();
   }, [productId, user?.id]);
+
+  const fetchAnalytics = async (productId: string) => {
+    try {
+      setLoadingAnalytics(true);
+      const analyticsData = await getProductAnalytics(productId);
+      if (analyticsData) {
+        setAnalytics(analyticsData);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -558,21 +586,21 @@ export default function EditListingScreen() {
         >
           <View
             style={{
-              paddingTop: insets.top + 24,
-              paddingBottom: 32,
-              paddingLeft: Math.max(insets.left, 24),
-              paddingRight: Math.max(insets.right, 24),
+              paddingTop: insets.top + PaddingSizes.lg,
+              paddingBottom: getPadding(32),
+              paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+              paddingRight: Math.max(insets.right, PaddingSizes.lg),
             }}
           >
             {/* Header */}
-            <View style={{ marginBottom: 32 }}>
+            <View style={{ marginBottom: getPadding(32) }}>
               <Pressable
                 onPress={() => router.back()}
-                style={{ marginBottom: 24, alignSelf: 'flex-start' }}
+                style={{ marginBottom: PaddingSizes.lg, alignSelf: 'flex-start' }}
               >
                 <Ionicons name="arrow-back" size={24} color={colors.textColor} />
               </Pressable>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: PaddingSizes.base }}>
                 <View
                   style={{
                     width: 48,
@@ -581,14 +609,14 @@ export default function EditListingScreen() {
                     backgroundColor: '#EC4899' + '20',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    marginRight: 12,
+                    marginRight: PaddingSizes.base,
                   }}
                 >
                   <Ionicons name="create-outline" size={24} color="#EC4899" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <Text style={{ color: colors.textColor, fontSize: 28, fontWeight: 'bold' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: PaddingSizes.sm, marginBottom: PaddingSizes.xs }}>
+                    <Text style={{ color: colors.textColor, fontSize: TextSizes['3xl'], fontWeight: 'bold' }}>
                       Edit Listing
                     </Text>
                     {product && (
@@ -600,8 +628,8 @@ export default function EditListingScreen() {
                             product.status === 'paused' ? '#6B7280' + '20' :
                             '#F59E0B' + '20',
                           borderRadius: 8,
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
+                          paddingHorizontal: PaddingSizes.sm,
+                          paddingVertical: PaddingSizes.xs,
                           borderWidth: 1,
                           borderColor:
                             product.status === 'active' ? '#10B981' :
@@ -617,7 +645,7 @@ export default function EditListingScreen() {
                               product.status === 'sold' ? '#EF4444' :
                               product.status === 'paused' ? '#6B7280' :
                               '#F59E0B',
-                            fontSize: 11,
+                            fontSize: getFontSize(11),
                             fontWeight: '700',
                             textTransform: 'uppercase',
                           }}
@@ -627,16 +655,180 @@ export default function EditListingScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
                     Update your product details
                   </Text>
                 </View>
               </View>
             </View>
 
+            {/* Analytics Section */}
+            {analytics !== null && (
+              <View style={{ marginBottom: getPadding(32) }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: PaddingSizes.md }}>
+                  <Text style={{ color: colors.textColor, fontSize: TextSizes.lg, fontWeight: 'bold' }}>
+                    Listing Analytics
+                  </Text>
+                  <Pressable
+                    onPress={() => productId && fetchAnalytics(productId)}
+                    disabled={loadingAnalytics}
+                    style={{
+                      padding: PaddingSizes.sm,
+                      borderRadius: 8,
+                      backgroundColor: colors.cardBackground,
+                      borderWidth: 1,
+                      borderColor: colors.borderColor,
+                    }}
+                  >
+                    <Ionicons
+                      name="refresh"
+                      size={20}
+                      color={colors.textColor}
+                      style={{ opacity: loadingAnalytics ? 0.5 : 1 }}
+                    />
+                  </Pressable>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: colors.cardBackground,
+                    borderRadius: 16,
+                    padding: 20,
+                    borderWidth: 1,
+                    borderColor: colors.borderColor,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+                    {/* Impressions */}
+                    <View style={{ flex: 1, minWidth: '45%' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: '#3B82F6' + '20',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 12,
+                          }}
+                        >
+                          <Ionicons name="eye-outline" size={20} color="#3B82F6" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.xs, marginBottom: getPadding(2) }}>
+                            Impressions
+                          </Text>
+                          {loadingAnalytics ? (
+                            <ActivityIndicator size="small" color="#3B82F6" />
+                          ) : (
+                            <Text style={{ color: colors.textColor, fontSize: TextSizes.xl, fontWeight: 'bold' }}>
+                              {analytics.impressionCount.toLocaleString()}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Views */}
+                    <View style={{ flex: 1, minWidth: '45%' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: '#10B981' + '20',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 12,
+                          }}
+                        >
+                          <Ionicons name="eye" size={20} color="#10B981" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.xs, marginBottom: getPadding(2) }}>
+                            Views
+                          </Text>
+                          {loadingAnalytics ? (
+                            <ActivityIndicator size="small" color="#10B981" />
+                          ) : (
+                            <Text style={{ color: colors.textColor, fontSize: TextSizes.xl, fontWeight: 'bold' }}>
+                              {analytics.viewCount.toLocaleString()}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Clicks */}
+                    <View style={{ flex: 1, minWidth: '45%' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: '#EC4899' + '20',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 12,
+                          }}
+                        >
+                          <Ionicons name="hand-left-outline" size={20} color="#EC4899" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.xs, marginBottom: getPadding(2) }}>
+                            Clicks
+                          </Text>
+                          {loadingAnalytics ? (
+                            <ActivityIndicator size="small" color="#EC4899" />
+                          ) : (
+                            <Text style={{ color: colors.textColor, fontSize: TextSizes.xl, fontWeight: 'bold' }}>
+                              {analytics.clickCount.toLocaleString()}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Shares */}
+                    <View style={{ flex: 1, minWidth: '45%' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: '#F59E0B' + '20',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginRight: 12,
+                          }}
+                        >
+                          <Ionicons name="share-social-outline" size={20} color="#F59E0B" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.xs, marginBottom: getPadding(2) }}>
+                            Shares
+                          </Text>
+                          {loadingAnalytics ? (
+                            <ActivityIndicator size="small" color="#F59E0B" />
+                          ) : (
+                            <Text style={{ color: colors.textColor, fontSize: TextSizes.xl, fontWeight: 'bold' }}>
+                              {analytics.shareCount.toLocaleString()}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+
             {/* Item Name */}
             <View style={{ marginBottom: 24 }}>
-              <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600', marginBottom: PaddingSizes.sm }}>
                 Item Name *
               </Text>
               <TextInput
@@ -649,9 +841,9 @@ export default function EditListingScreen() {
                 style={{
                   backgroundColor: colors.cardBackground,
                   borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  fontSize: 16,
+                  paddingHorizontal: PaddingSizes.md,
+                  paddingVertical: getPadding(14),
+                  fontSize: TextSizes.base,
                   color: colors.textColor,
                   borderWidth: 2,
                   borderColor: nameFocused ? '#EC4899' : colors.borderColor,
@@ -662,7 +854,7 @@ export default function EditListingScreen() {
             {/* Category & Condition */}
             <View style={{ flexDirection: 'row', gap: 16, marginBottom: 24 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+                <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600', marginBottom: PaddingSizes.sm }}>
                   Category *
                 </Text>
                 <Pressable
@@ -679,7 +871,7 @@ export default function EditListingScreen() {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: category ? colors.textColor : colors.secondaryTextColor, fontSize: 16 }}>
+                  <Text style={{ color: category ? colors.textColor : colors.secondaryTextColor, fontSize: TextSizes.base }}>
                     {category || 'Select category'}
                   </Text>
                   <Ionicons name="chevron-down" size={20} color={colors.secondaryTextColor} />
@@ -721,7 +913,7 @@ export default function EditListingScreen() {
               </View>
 
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+                <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600', marginBottom: PaddingSizes.sm }}>
                   Condition *
                 </Text>
                 <Pressable
@@ -793,7 +985,7 @@ export default function EditListingScreen() {
 
             {/* Description */}
             <View style={{ marginBottom: 24 }}>
-              <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600', marginBottom: PaddingSizes.sm }}>
                 Description *
               </Text>
               <TextInput
@@ -809,9 +1001,9 @@ export default function EditListingScreen() {
                 style={{
                   backgroundColor: colors.cardBackground,
                   borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  fontSize: 16,
+                  paddingHorizontal: PaddingSizes.md,
+                  paddingVertical: getPadding(14),
+                  fontSize: TextSizes.base,
                   color: colors.textColor,
                   borderWidth: 2,
                   borderColor: descriptionFocused ? '#EC4899' : colors.borderColor,
@@ -822,7 +1014,7 @@ export default function EditListingScreen() {
 
             {/* Price */}
             <View style={{ marginBottom: 24 }}>
-              <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600', marginBottom: PaddingSizes.sm }}>
                 Price (R) *
               </Text>
               <TextInput
@@ -836,9 +1028,9 @@ export default function EditListingScreen() {
                 style={{
                   backgroundColor: colors.cardBackground,
                   borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  fontSize: 16,
+                  paddingHorizontal: PaddingSizes.md,
+                  paddingVertical: getPadding(14),
+                  fontSize: TextSizes.base,
                   color: colors.textColor,
                   borderWidth: 2,
                   borderColor: priceFocused ? '#EC4899' : colors.borderColor,
@@ -848,7 +1040,7 @@ export default function EditListingScreen() {
 
             {/* Photos */}
             <View style={{ marginBottom: 24 }}>
-              <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600', marginBottom: PaddingSizes.sm }}>
                 Photos ({photos.length}/10)
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>

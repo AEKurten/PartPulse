@@ -1,11 +1,13 @@
 import { ProductCard } from '@/components/product-card';
+import { TextSizes, PaddingSizes, getPadding } from '@/constants/platform-styles';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { trackProductImpression } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View, ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/useAuthStore';
 
@@ -24,6 +26,7 @@ export default function WishlistScreen() {
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [impressedProducts, setImpressedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchWishlist();
@@ -78,7 +81,7 @@ export default function WishlistScreen() {
             images: product.images || [],
           };
         })
-        .filter((p: any) => p !== null);
+        .filter((p): p is WishlistProduct => p !== null);
 
       setProducts(wishlistProducts);
     } catch (error) {
@@ -118,6 +121,21 @@ export default function WishlistScreen() {
     }
   };
 
+  const handleViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    // Track impressions for newly visible items
+    viewableItems.forEach(({ item }) => {
+      const productId = (item as WishlistProduct).id;
+      // Only track if not already impressed in this session
+      if (!impressedProducts.has(productId)) {
+        setImpressedProducts((prev) => new Set(prev).add(productId));
+        // Track impression asynchronously (non-blocking)
+        trackProductImpression(productId, user?.id || null, 'wishlist').catch((error) => {
+          console.error('Error tracking impression:', error);
+        });
+      }
+    });
+  }, [impressedProducts, user?.id]);
+
   return (
     <View
       className="flex-1"
@@ -129,18 +147,18 @@ export default function WishlistScreen() {
       <StatusBar style={colors.statusBarStyle} />
       <View
         style={{
-          paddingLeft: Math.max(insets.left, 24),
-          paddingRight: Math.max(insets.right, 24),
-          paddingTop: 24,
-          paddingBottom: 16,
+          paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+          paddingRight: Math.max(insets.right, PaddingSizes.lg),
+          paddingTop: PaddingSizes.lg,
+          paddingBottom: PaddingSizes.md,
         }}
       >
         {/* Header */}
-        <View style={{ marginBottom: 24 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <View style={{ marginBottom: PaddingSizes.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: PaddingSizes.base }}>
             <Pressable
               onPress={() => router.back()}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: PaddingSizes.md }}
             >
               <Ionicons name="arrow-back" size={24} color={colors.textColor} />
             </Pressable>
@@ -152,7 +170,7 @@ export default function WishlistScreen() {
                 backgroundColor: '#EC4899' + '20',
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginRight: 12,
+                marginRight: PaddingSizes.base,
               }}
             >
               <Ionicons name="heart-outline" size={24} color="#EC4899" />
@@ -161,14 +179,14 @@ export default function WishlistScreen() {
               <Text
                 style={{
                   color: colors.textColor,
-                  fontSize: 28,
+                  fontSize: TextSizes['3xl'],
                   fontWeight: 'bold',
-                  marginBottom: 4,
+                  marginBottom: PaddingSizes.xs,
                 }}
               >
                 My Wishlist
               </Text>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
                 {products.length} item{products.length !== 1 ? 's' : ''} saved
               </Text>
             </View>
@@ -195,13 +213,17 @@ export default function WishlistScreen() {
               colors={["#EC4899"]}
             />
           }
-          contentContainerStyle={{
-            paddingLeft: Math.max(insets.left, 24),
-            paddingRight: Math.max(insets.right, 24),
-            paddingBottom: 24,
-            gap: 16,
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={{
+            itemVisiblePercentThreshold: 50, // Item is considered visible when 50% is shown
           }}
-          columnWrapperStyle={{ gap: 16 }}
+          contentContainerStyle={{
+            paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+            paddingRight: Math.max(insets.right, PaddingSizes.lg),
+            paddingBottom: PaddingSizes.lg,
+            gap: PaddingSizes.md,
+          }}
+          columnWrapperStyle={{ gap: PaddingSizes.md }}
           renderItem={({ item }) => (
             <View style={{ flex: 1 }}>
               <ProductCard
@@ -210,6 +232,7 @@ export default function WishlistScreen() {
                 price={item.price.toString()}
                 condition={item.condition}
                 image={item.images && item.images.length > 0 ? item.images[0] : ''}
+                source="wishlist"
                 isWishlisted={true}
                 onWishlistPress={handleWishlistPress}
                 onPress={() => router.push({
@@ -226,7 +249,7 @@ export default function WishlistScreen() {
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
-            paddingHorizontal: 24,
+            paddingHorizontal: PaddingSizes.lg,
           }}
         >
           <View
@@ -237,7 +260,7 @@ export default function WishlistScreen() {
               backgroundColor: colors.cardBackground,
               justifyContent: 'center',
               alignItems: 'center',
-              marginBottom: 24,
+              marginBottom: PaddingSizes.lg,
             }}
           >
             <Ionicons
@@ -249,9 +272,9 @@ export default function WishlistScreen() {
           <Text
             style={{
               color: colors.textColor,
-              fontSize: 20,
+              fontSize: TextSizes.xl,
               fontWeight: '600',
-              marginBottom: 8,
+              marginBottom: PaddingSizes.sm,
               textAlign: 'center',
             }}
           >
@@ -260,9 +283,9 @@ export default function WishlistScreen() {
           <Text
             style={{
               color: colors.secondaryTextColor,
-              fontSize: 14,
+              fontSize: TextSizes.sm,
               textAlign: 'center',
-              marginBottom: 24,
+              marginBottom: PaddingSizes.lg,
             }}
           >
             Start saving products you love by tapping the heart icon
@@ -272,11 +295,11 @@ export default function WishlistScreen() {
             style={{
               backgroundColor: '#EC4899',
               borderRadius: 12,
-              paddingVertical: 14,
-              paddingHorizontal: 24,
+              paddingVertical: getPadding(14),
+              paddingHorizontal: PaddingSizes.lg,
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+            <Text style={{ color: '#FFFFFF', fontSize: TextSizes.base, fontWeight: '600' }}>
               Browse Products
             </Text>
           </Pressable>
@@ -285,4 +308,3 @@ export default function WishlistScreen() {
     </View>
   );
 }
-

@@ -5,13 +5,15 @@ import { FilterModal, FilterState } from "@/components/filter-modal";
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { ProductCard } from "@/components/product-card";
 import { SearchWithFilters } from "@/components/search-with-filters";
+import { PaddingSizes, TextSizes, getPadding } from "@/constants/platform-styles";
 import { useThemeColors } from "@/hooks/use-theme-colors";
+import { trackProductImpression } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, FlatList, Pressable, RefreshControl, ScrollView, Text, View, ViewToken } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../stores/useAuthStore";
 
@@ -43,6 +45,7 @@ const initialFilters: FilterState = {
 export default function MarketScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const params = useLocalSearchParams<{ search?: string }>();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategoryFilter, setActiveCategoryFilter] = useState("All");
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -51,6 +54,8 @@ export default function MarketScreen() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [wishlistMap, setWishlistMap] = useState<Record<string, boolean>>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [impressedProducts, setImpressedProducts] = useState<Set<string>>(new Set());
+  const { user } = useAuthStore();
 
   const fetchProducts = async () => {
     const { data, error } = await supabase
@@ -113,6 +118,13 @@ export default function MarketScreen() {
     fetchProducts();
     fetchWishlist();
   }, []);
+
+  // Set search query from route params
+  useEffect(() => {
+    if (params.search) {
+      setSearchQuery(params.search);
+    }
+  }, [params.search]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -299,19 +311,19 @@ export default function MarketScreen() {
       <StatusBar style={colors.statusBarStyle} />
       <View
         style={{
-          paddingLeft: Math.max(insets.left, 24),
-          paddingRight: Math.max(insets.right, 24),
-          paddingTop: 24,
-          paddingBottom: 16,
+          paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+          paddingRight: Math.max(insets.right, PaddingSizes.lg),
+          paddingTop: PaddingSizes.lg,
+          paddingBottom: PaddingSizes.md,
         }}
       >
         {/* Header */}
-        <View style={{ marginBottom: 24 }}>
+        <View style={{ marginBottom: PaddingSizes.lg }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              marginBottom: 12,
+              marginBottom: PaddingSizes.base,
             }}
           >
             <View
@@ -322,7 +334,7 @@ export default function MarketScreen() {
                 backgroundColor: "#EC4899" + "20",
                 justifyContent: "center",
                 alignItems: "center",
-                marginRight: 12,
+                marginRight: PaddingSizes.base,
               }}
             >
               <Ionicons name="storefront-outline" size={24} color="#EC4899" />
@@ -331,14 +343,14 @@ export default function MarketScreen() {
               <Text
                 style={{
                   color: colors.textColor,
-                  fontSize: 28,
+                  fontSize: TextSizes['3xl'],
                   fontWeight: "bold",
-                  marginBottom: 4,
+                  marginBottom: PaddingSizes.xs,
                 }}
               >
                 Market
               </Text>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
                 Find the perfect parts for your build
               </Text>
             </View>
@@ -346,8 +358,9 @@ export default function MarketScreen() {
         </View>
 
         {/* Search Bar with Filters Button */}
-        <View style={{ marginBottom: 16 }}>
+        <View style={{ marginBottom: PaddingSizes.md }}>
           <SearchWithFilters
+            value={searchQuery}
             onSearchChange={handleSearchChange}
             onFiltersPress={() => setShowFilterModal(true)}
           />
@@ -356,26 +369,26 @@ export default function MarketScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                marginTop: 8,
-                gap: 8,
+                marginTop: PaddingSizes.sm,
+                gap: PaddingSizes.sm,
               }}
             >
               <View
                 style={{
                   backgroundColor: "#EC4899",
                   borderRadius: 12,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
+                  paddingHorizontal: PaddingSizes.base,
+                  paddingVertical: getPadding(6),
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 6,
+                  gap: getPadding(6),
                 }}
               >
                 <Ionicons name="filter" size={14} color="#FFFFFF" />
                 <Text
                   style={{
                     color: "#FFFFFF",
-                    fontSize: 12,
+                    fontSize: TextSizes.xs,
                     fontWeight: "600",
                   }}
                 >
@@ -386,7 +399,7 @@ export default function MarketScreen() {
                 <Text
                   style={{
                     color: "#EC4899",
-                    fontSize: 12,
+                    fontSize: TextSizes.xs,
                     fontWeight: "600",
                   }}
                 >
@@ -401,7 +414,7 @@ export default function MarketScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingRight: 24 }}
+          contentContainerStyle={{ paddingRight: PaddingSizes.lg }}
         >
           {filterChips.map((chip) => (
             <FilterChip
@@ -428,11 +441,28 @@ export default function MarketScreen() {
             colors={["#EC4899"]}
           />
         }
+        onViewableItemsChanged={useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+          // Track impressions for newly visible items
+          viewableItems.forEach(({ item }) => {
+            const productId = (item as Product).id.toString();
+            // Only track if not already impressed in this session
+            if (!impressedProducts.has(productId)) {
+              setImpressedProducts((prev) => new Set(prev).add(productId));
+              // Track impression asynchronously (non-blocking)
+              trackProductImpression(productId, user?.id || null, 'marketplace').catch((error) => {
+                console.error('Error tracking impression:', error);
+              });
+            }
+          });
+        }, [impressedProducts, user?.id])}
+        viewabilityConfig={{
+          itemVisiblePercentThreshold: 50, // Item is considered visible when 50% is shown
+        }}
         contentContainerStyle={{
-          paddingLeft: Math.max(insets.left, 24),
-          paddingRight: Math.max(insets.right, 24),
-          paddingBottom: 24,
-          gap: 16,
+          paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+          paddingRight: Math.max(insets.right, PaddingSizes.lg),
+          paddingBottom: PaddingSizes.lg,
+          gap: PaddingSizes.md,
         }}
         columnWrapperStyle={{ gap: 0 }}
         renderItem={({ item }) => (
@@ -440,9 +470,16 @@ export default function MarketScreen() {
             <ProductCard
               id={item.id}
               name={item.name}
-              price={typeof item.price === 'number' ? item.price.toString() : item.price}
+              price={
+                typeof item.price === 'number'
+                  ? (item.price as number).toString()
+                  : typeof item.price === 'string'
+                  ? item.price
+                  : ''
+              }
               condition={item.condition}
-              image={item.images && item.images.length > 0 ? item.images[0] : ''}
+              image={Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : ''}
+              source="marketplace"
               isWishlisted={wishlistMap[item.id] || false}
               onWishlistPress={handleWishlistPress}
               onPress={() => router.push({
@@ -453,19 +490,19 @@ export default function MarketScreen() {
           </View>
         )}
         ListEmptyComponent={
-          <View style={{ padding: 32, alignItems: "center" }}>
+          <View style={{ padding: getPadding(32), alignItems: "center" }}>
             <Ionicons
               name="search-outline"
               size={48}
               color={colors.secondaryTextColor}
-              style={{ marginBottom: 16, opacity: 0.5 }}
+              style={{ marginBottom: PaddingSizes.md, opacity: 0.5 }}
             />
             <Text
               style={{
                 color: colors.textColor,
-                fontSize: 18,
+                fontSize: TextSizes.lg,
                 fontWeight: "600",
-                marginBottom: 8,
+                marginBottom: PaddingSizes.sm,
               }}
             >
               No products found
@@ -473,7 +510,7 @@ export default function MarketScreen() {
             <Text
               style={{
                 color: colors.secondaryTextColor,
-                fontSize: 14,
+                fontSize: TextSizes.sm,
                 textAlign: "center",
               }}
             >
@@ -484,11 +521,11 @@ export default function MarketScreen() {
         ListHeaderComponent={
           <View>
             {filteredProducts.length > 0 && (
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: PaddingSizes.md }}>
                 <Text
                   style={{
                     color: colors.secondaryTextColor,
-                    fontSize: 14,
+                    fontSize: TextSizes.sm,
                   }}
                 >
                   {filteredProducts.length} product
@@ -496,7 +533,7 @@ export default function MarketScreen() {
                 </Text>
               </View>
             )}
-            <View style={{ marginBottom: 24 }}>
+            <View style={{ marginBottom: PaddingSizes.lg }}>
               <AdBanner onUpgradePress={() => setShowPaywall(true)} />
             </View>
           </View>

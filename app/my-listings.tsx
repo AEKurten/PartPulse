@@ -171,6 +171,7 @@ export default function MyListingsScreen() {
                 price={item.price}
                 condition={item.condition}
                 image={item.image}
+                source="my_listings"
                 status={item.status}
                 onPress={() => handleProductPress(item.id)}
                 onWishlistPress={undefined}

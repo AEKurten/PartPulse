@@ -596,6 +596,7 @@ export default function SellerProfileScreen() {
                   <View style={{ flex: 1 }}>
                     <ProductCard
                       {...item}
+                      source="seller_profile"
                       onWishlistPress={handleWishlistPress}
                       onPress={() => router.push({ pathname: '/buy-item', params: { productId: item.id } })}
                     />

@@ -1,6 +1,7 @@
+import { TextSizes, PaddingSizes, getPadding } from '@/constants/platform-styles';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Platform, TextInput, View, Pressable } from 'react-native';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 
 type SearchBarProps = {
@@ -8,6 +9,7 @@ type SearchBarProps = {
   onSearchChange?: (query: string) => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  onSubmit?: (query: string) => void;
 };
 
 export function SearchBar({
@@ -15,6 +17,7 @@ export function SearchBar({
   onSearchChange,
   onFocus,
   onBlur,
+  onSubmit,
 }: SearchBarProps) {
   const colors = useThemeColors();
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +38,12 @@ export function SearchBar({
     onBlur?.();
   };
 
+  const handleSubmit = () => {
+    if (searchQuery.trim() && onSubmit) {
+      onSubmit(searchQuery.trim());
+    }
+  };
+
   return (
     <View
       style={{
@@ -42,8 +51,8 @@ export function SearchBar({
         alignItems: 'center',
         backgroundColor: colors.cardBackground,
         borderRadius: 999,
-        paddingHorizontal: 20,
-        paddingVertical: 14,
+        height: 50,
+        paddingHorizontal: getPadding(20),
       }}
     >
       <TextInput
@@ -53,13 +62,19 @@ export function SearchBar({
         onChangeText={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onSubmitEditing={handleSubmit}
+        returnKeyType="search"
         style={{
           flex: 1,
-          fontSize: 16,
+          fontSize: TextSizes.base,
           color: colors.textColor,
+          paddingVertical: 0, // Remove default TextInput padding
+          height: '100%',
         }}
       />
-      <Ionicons name="search-outline" size={24} color="#D62F76" />
+      <Pressable onPress={handleSubmit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Ionicons name="search-outline" size={24} color="#D62F76" />
+      </Pressable>
     </View>
   );
 }

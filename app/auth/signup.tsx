@@ -1,4 +1,5 @@
-import { signUp } from '@/lib/auth';
+import { signUp, signInWithGoogle, signInWithApple } from '@/lib/auth';
+import { getFontSize, getPadding, TextSizes, PaddingSizes } from '@/constants/platform-styles';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
@@ -17,6 +18,7 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState<'google' | 'apple' | null>(null);
 
   const navigation = useRouter();
 
@@ -95,10 +97,10 @@ export default function SignUpScreen() {
         <View
           className="flex-1"
           style={{
-            paddingTop: insets.top + 40,
-            paddingBottom: insets.bottom + 32,
-            paddingLeft: Math.max(insets.left, 24),
-            paddingRight: Math.max(insets.right, 24),
+            paddingTop: insets.top + getPadding(40),
+            paddingBottom: insets.bottom + getPadding(32),
+            paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+            paddingRight: Math.max(insets.right, PaddingSizes.lg),
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -107,15 +109,21 @@ export default function SignUpScreen() {
           }}
         >
           {/* App Name */}
-          <Text className="text-4xl font-bold text-white text-center mb-2">
+          <Text 
+            className="font-bold text-white text-center mb-2"
+            style={{ fontSize: TextSizes['4xl'] }}
+          >
             PartPulse
           </Text>
-          <Text className="text-lg text-neutral-400 text-center mb-8">
+          <Text 
+            className="text-neutral-400 text-center mb-8"
+            style={{ fontSize: TextSizes.lg }}
+          >
             Let's create your account
           </Text>
 
           {/* Username Input */}
-          <View style={{ marginBottom: 16, width: '100%' }}>
+          <View style={{ marginBottom: PaddingSizes.md, width: '100%' }}>
             <TextInput
               placeholder="Username"
               placeholderTextColor="#9CA3AF"
@@ -128,9 +136,9 @@ export default function SignUpScreen() {
               style={{
                 backgroundColor: '#2B2E36',
                 borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                fontSize: 16,
+                paddingHorizontal: PaddingSizes.md,
+                paddingVertical: PaddingSizes.md,
+                fontSize: TextSizes.base,
                 color: '#FFFFFF',
                 borderWidth: usernameFocused ? 2 : 0,
                 borderColor: usernameFocused ? '#EC4899' : 'transparent',
@@ -139,7 +147,7 @@ export default function SignUpScreen() {
           </View>
 
           {/* Email Input */}
-          <View style={{ marginBottom: 16, width: '100%' }}>
+          <View style={{ marginBottom: PaddingSizes.md, width: '100%' }}>
             <TextInput
               placeholder="Email"
               placeholderTextColor="#9CA3AF"
@@ -153,23 +161,26 @@ export default function SignUpScreen() {
               style={{
                 backgroundColor: '#2B2E36',
                 borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                fontSize: 16,
+                paddingHorizontal: PaddingSizes.md,
+                paddingVertical: PaddingSizes.md,
+                fontSize: TextSizes.base,
                 color: '#FFFFFF',
                 borderWidth: emailFocused ? 2 : 0,
                 borderColor: emailFocused ? '#EC4899' : 'transparent',
               }}
             />
             {emailError ? (
-              <Text className='mt-2 text-red-400'>
+              <Text 
+                className='mt-2 text-red-400'
+                style={{ fontSize: TextSizes.sm }}
+              >
                 {emailError}
               </Text>
             ) : null}
           </View>
 
           {/* Password Input */}
-          <View style={{ marginBottom: 24, width: '100%' }}>
+          <View style={{ marginBottom: PaddingSizes.lg, width: '100%' }}>
             <View style={{ position: 'relative' }}>
               <TextInput
                 placeholder="Password"
@@ -184,9 +195,9 @@ export default function SignUpScreen() {
                 style={{
                   backgroundColor: '#2B2E36',
                   borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 16,
-                  fontSize: 16,
+                  paddingHorizontal: PaddingSizes.md,
+                  paddingVertical: PaddingSizes.md,
+                  fontSize: TextSizes.base,
                   color: '#FFFFFF',
                   paddingRight: 50,
                   borderWidth: passwordFocused ? 2 : 0,
@@ -197,9 +208,9 @@ export default function SignUpScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 style={{
                   position: 'absolute',
-                  right: 16,
-                  top: 16,
-                  padding: 4,
+                  right: PaddingSizes.md,
+                  top: PaddingSizes.md,
+                  padding: PaddingSizes.xs,
                 }}
               >
                 <Ionicons
@@ -227,22 +238,53 @@ export default function SignUpScreen() {
                   alignItems: 'center',
                 }}
               >
-                {!isLoading ? <Text className="text-white text-lg font-bold">
-                  Create Account
-                </Text> : <ActivityIndicator size="small" color="#FFFFFF" />}
+                {!isLoading ? (
+                  <Text 
+                    className="text-white font-bold"
+                    style={{ fontSize: TextSizes.lg }}
+                  >
+                    Create Account
+                  </Text>
+                ) : (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                )}
               </LinearGradient>
             )}
           </Pressable>
 
           {/* Divider */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: PaddingSizes.lg }}>
             <View style={{ flex: 1, height: 1, backgroundColor: '#2B2E36' }} />
-            <Text className="text-white/50 mx-4 text-sm">or</Text>
+            <Text 
+              className="text-white/50 mx-4"
+              style={{ fontSize: TextSizes.sm }}
+            >
+              or
+            </Text>
             <View style={{ flex: 1, height: 1, backgroundColor: '#2B2E36' }} />
           </View>
 
           {/* Google Sign Up */}
-          <Pressable style={{ marginBottom: 12, width: '100%' }}>
+          <Pressable 
+            style={{ marginBottom: PaddingSizes.base, width: '100%' }}
+            onPress={async () => {
+              if (isOAuthLoading) return;
+              setIsOAuthLoading('google');
+              try {
+                const { user, error } = await signInWithGoogle();
+                if (error) {
+                  Alert.alert('Sign up failed', error);
+                } else if (user) {
+                  navigation.replace('/(tabs)');
+                }
+              } catch (error: any) {
+                Alert.alert('Error', error.message || 'Failed to sign up with Google');
+              } finally {
+                setIsOAuthLoading(null);
+              }
+            }}
+            disabled={isOAuthLoading !== null}
+          >
             {({ pressed }) => (
               <View
                 style={{
@@ -254,19 +296,47 @@ export default function SignUpScreen() {
                   justifyContent: 'center',
                   borderWidth: pressed ? 2 : 0,
                   borderColor: pressed ? '#EC4899' : 'transparent',
-                  opacity: pressed ? 0.8 : 1,
+                  opacity: (pressed || isOAuthLoading !== null) ? 0.8 : 1,
                 }}
               >
-                <Ionicons name="logo-google" size={20} color="#FFFFFF" style={{ marginRight: 12 }} />
-                <Text className="text-white text-lg font-semibold">
-                  Sign up with Google
-                </Text>
+                {isOAuthLoading === 'google' ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={20} color="#FFFFFF" style={{ marginRight: PaddingSizes.base }} />
+                    <Text 
+                      className="text-white font-semibold"
+                      style={{ fontSize: TextSizes.lg }}
+                    >
+                      Sign up with Google
+                    </Text>
+                  </>
+                )}
               </View>
             )}
           </Pressable>
 
           {/* Apple Sign Up */}
-          <Pressable style={{ marginBottom: 24, width: '100%' }}>
+          <Pressable 
+            style={{ marginBottom: PaddingSizes.lg, width: '100%' }}
+            onPress={async () => {
+              if (isOAuthLoading) return;
+              setIsOAuthLoading('apple');
+              try {
+                const { user, error } = await signInWithApple();
+                if (error) {
+                  Alert.alert('Sign up failed', error);
+                } else if (user) {
+                  navigation.replace('/(tabs)');
+                }
+              } catch (error: any) {
+                Alert.alert('Error', error.message || 'Failed to sign up with Apple');
+              } finally {
+                setIsOAuthLoading(null);
+              }
+            }}
+            disabled={isOAuthLoading !== null}
+          >
             {({ pressed }) => (
               <View
                 style={{
@@ -278,13 +348,22 @@ export default function SignUpScreen() {
                   justifyContent: 'center',
                   borderWidth: pressed ? 2 : 0,
                   borderColor: pressed ? '#EC4899' : 'transparent',
-                  opacity: pressed ? 0.8 : 1,
+                  opacity: (pressed || isOAuthLoading !== null) ? 0.8 : 1,
                 }}
               >
-                <Ionicons name="logo-apple" size={20} color="#FFFFFF" style={{ marginRight: 12 }} />
-                <Text className="text-white text-lg font-semibold">
-                  Sign up with Apple
-                </Text>
+                {isOAuthLoading === 'apple' ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="logo-apple" size={20} color="#FFFFFF" style={{ marginRight: PaddingSizes.base }} />
+                    <Text 
+                      className="text-white font-semibold"
+                      style={{ fontSize: TextSizes.lg }}
+                    >
+                      Sign up with Apple
+                    </Text>
+                  </>
+                )}
               </View>
             )}
           </Pressable>

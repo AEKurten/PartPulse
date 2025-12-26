@@ -1,12 +1,16 @@
 import { BlockReportModal } from '@/components/block-report-modal';
 import { PrivateChat } from '@/components/private-chat';
 import { ProductDetailSkeleton } from '@/components/product-detail-skeleton';
+import { ShareModal } from '@/components/share-modal';
+import { TextSizes, PaddingSizes, getPadding } from '@/constants/platform-styles';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { getProductAnalytics, trackProductView, trackProductShare } from '@/lib/analytics';
 import { getProduct } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Sharing from 'expo-sharing';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -32,6 +36,8 @@ export default function BuyItemScreen() {
   const [hasAlert, setHasAlert] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [showBlockReportModal, setShowBlockReportModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [analytics, setAnalytics] = useState<{ viewCount: number; clickCount: number; shareCount: number; impressionCount: number } | null>(null);
   const { user } = useAuthStore();
 
   // Fetch product and seller data
@@ -55,6 +61,16 @@ export default function BuyItemScreen() {
         }
         setProduct(productData);
 
+        // Track product view (only once per user)
+        const userId = useAuthStore.getState().user?.id || null;
+        await trackProductView(productId, userId);
+
+        // Fetch product analytics
+        const analyticsData = await getProductAnalytics(productId);
+        if (analyticsData) {
+          setAnalytics(analyticsData);
+        }
+
         // Fetch seller profile
         const { data: sellerData, error: sellerError } = await supabase
           .from('profiles')
@@ -69,7 +85,6 @@ export default function BuyItemScreen() {
         }
 
         // Check if product is in wishlist and has alert, and if user is owner
-        const userId = useAuthStore.getState().user?.id;
         if (userId) {
           setIsOwner(productData.seller_id === userId);
           
@@ -232,6 +247,79 @@ export default function BuyItemScreen() {
     });
   };
 
+  const handleShare = async (method: 'link' | 'social' | 'message' | 'other', platform?: string) => {
+    if (!product) {
+      Alert.alert('Error', 'Product information not available');
+      return;
+    }
+
+    const shareUrl = `https://partpulse.app/product/${product.id}`;
+    const shareMessage = `Check out this ${product.name} on PartPulse! ${shareUrl}`;
+
+    try {
+      if (method === 'link') {
+        // Copy to clipboard
+        if (Platform.OS === 'web') {
+          await navigator.clipboard.writeText(shareUrl);
+          Alert.alert('Copied!', 'Product link copied to clipboard');
+        } else {
+          // Use expo-clipboard for React Native
+          const Clipboard = require('@react-native-clipboard/clipboard').default;
+          Clipboard.setString(shareUrl);
+          Alert.alert('Copied!', 'Product link copied to clipboard');
+        }
+        if (user?.id) {
+          await trackProductShare(product.id, user.id, 'link', 'copy_link');
+        }
+      } else if (method === 'social' && platform) {
+        // Use expo-sharing for native share sheet
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(shareUrl, {
+            message: shareMessage,
+            dialogTitle: `Share ${product.name}`,
+          });
+          if (user?.id) {
+            await trackProductShare(product.id, user.id, 'social', platform);
+          }
+        } else {
+          // Fallback to clipboard
+          if (Platform.OS === 'web') {
+            await navigator.clipboard.writeText(shareUrl);
+          } else {
+            const Clipboard = require('@react-native-clipboard/clipboard').default;
+            Clipboard.setString(shareUrl);
+          }
+          Alert.alert('Copied!', 'Product link copied to clipboard');
+          if (user?.id) {
+            await trackProductShare(product.id, user.id, 'link', 'copy_link');
+          }
+        }
+      } else {
+        // Generic share
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(shareUrl, {
+            message: shareMessage,
+            dialogTitle: `Share ${product.name}`,
+          });
+          if (user?.id) {
+            await trackProductShare(product.id, user.id, method, platform);
+          }
+        }
+      }
+
+      setShowShareModal(false);
+      
+      // Refresh analytics
+      const updatedAnalytics = await getProductAnalytics(product.id);
+      if (updatedAnalytics) {
+        setAnalytics(updatedAnalytics);
+      }
+    } catch (error: any) {
+      console.error('Error sharing product:', error);
+      Alert.alert('Error', 'Failed to share product');
+    }
+  };
+
   // Format price
   const formatPrice = (price: number) => {
     return `R ${price.toFixed(2)}`;
@@ -282,9 +370,9 @@ export default function BuyItemScreen() {
           top: 0,
           left: 0,
           right: 0,
-          paddingTop: insets.top + 16,
-          paddingLeft: 16,
-          paddingRight: 16,
+          paddingTop: insets.top + PaddingSizes.md,
+          paddingLeft: PaddingSizes.md,
+          paddingRight: PaddingSizes.md,
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -427,15 +515,15 @@ export default function BuyItemScreen() {
         {/* Content */}
         <View
           style={{
-            paddingLeft: Math.max(insets.left, 24),
-            paddingRight: Math.max(insets.right, 24),
-            paddingTop: 24,
+            paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+            paddingRight: Math.max(insets.right, PaddingSizes.lg),
+            paddingTop: PaddingSizes.lg,
           }}
         >
           {/* Product Name & Price */}
-          <View style={{ marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-              <Text style={{ color: colors.textColor, fontSize: 30, fontWeight: 'bold', flex: 1 }}>
+          <View style={{ marginBottom: PaddingSizes.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: PaddingSizes.sm, marginBottom: PaddingSizes.sm, flexWrap: 'wrap' }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes['3xl'], fontWeight: 'bold', flex: 1 }}>
                 {product.name}
               </Text>
               {/* Listing Type Badge */}
@@ -444,8 +532,8 @@ export default function BuyItemScreen() {
                   style={{
                     backgroundColor: product.listing_type === 'instant' ? '#10B98120' : '#EC489920',
                     borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
+                    paddingHorizontal: PaddingSizes.base,
+                    paddingVertical: getPadding(6),
                     borderWidth: 1,
                     borderColor: product.listing_type === 'instant' ? '#10B981' : '#EC4899',
                     flexDirection: 'row',
@@ -461,7 +549,7 @@ export default function BuyItemScreen() {
                   <Text 
                     style={{ 
                       color: product.listing_type === 'instant' ? '#10B981' : '#EC4899', 
-                      fontSize: 12, 
+                      fontSize: TextSizes.xs, 
                       fontWeight: '600' 
                     }}
                   >
@@ -471,7 +559,7 @@ export default function BuyItemScreen() {
               )}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Text style={{ color: colors.textColor, fontSize: 30, fontWeight: 'bold' }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes['3xl'], fontWeight: 'bold' }}>
                 {formatPrice(product.price)}
               </Text>
               <View
@@ -482,7 +570,7 @@ export default function BuyItemScreen() {
                   paddingVertical: 6,
                 }}
               >
-                <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
                   {product.condition}
                 </Text>
               </View>
@@ -495,8 +583,8 @@ export default function BuyItemScreen() {
               style={{
                 backgroundColor: colors.cardBackground,
                 borderRadius: 16,
-                padding: 16,
-                marginBottom: 16,
+                padding: PaddingSizes.md,
+                marginBottom: PaddingSizes.md,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 12,
@@ -525,18 +613,18 @@ export default function BuyItemScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+                  <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600' }}>
                     AI Certified
                   </Text>
                   <View
                     style={{
                       backgroundColor: '#10B981',
                       borderRadius: 6,
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
+                    paddingHorizontal: PaddingSizes.sm,
+                    paddingVertical: getPadding(2),
                     }}
                   >
-                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' }}>
+                    <Text style={{ color: '#FFFFFF', fontSize: TextSizes.xs, fontWeight: 'bold' }}>
                       Grade A+
                     </Text>
                   </View>
@@ -566,7 +654,7 @@ export default function BuyItemScreen() {
                         }}
                       />
                     </View>
-                    <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
+                    <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.xs }}>
                       92/100
                     </Text>
                   </View>
@@ -605,13 +693,13 @@ export default function BuyItemScreen() {
               ) : (
                 <Ionicons name="person-circle" size={40} color={colors.secondaryTextColor} />
               )}
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '600' }}>
+              <View style={{ marginLeft: PaddingSizes.base, flex: 1 }}>
+                <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '600' }}>
                   {seller?.username || seller?.full_name || 'Unknown Seller'}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="star" size={14} color="#F59E0B" />
-                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
                     4.8 {/* TODO: Calculate from reviews */}
                   </Text>
                 </View>
@@ -622,7 +710,7 @@ export default function BuyItemScreen() {
                 <Pressable
                   onPress={() => setShowBlockReportModal(true)}
                   style={{
-                    padding: 8,
+                    padding: PaddingSizes.sm,
                     borderRadius: 8,
                   }}
                 >
@@ -648,11 +736,11 @@ export default function BuyItemScreen() {
 
           {/* Description */}
           {product.description && (
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+            <View style={{ marginBottom: PaddingSizes.lg }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes.xl, fontWeight: 'bold', marginBottom: PaddingSizes.base }}>
                 Description
               </Text>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: 16, lineHeight: 24 }}>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.base, lineHeight: getPadding(24) }}>
                 {product.description}
               </Text>
             </View>
@@ -660,8 +748,8 @@ export default function BuyItemScreen() {
 
           {/* Specifications */}
           {getSpecifications().length > 0 && (
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+            <View style={{ marginBottom: PaddingSizes.lg }}>
+              <Text style={{ color: colors.textColor, fontSize: TextSizes.xl, fontWeight: 'bold', marginBottom: PaddingSizes.base }}>
                 Specifications
               </Text>
               <View
@@ -679,15 +767,15 @@ export default function BuyItemScreen() {
                   style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
-                    paddingVertical: 16,
-                    paddingHorizontal: 16,
+                    paddingVertical: PaddingSizes.md,
+                    paddingHorizontal: PaddingSizes.md,
                     borderBottomWidth:
                       index < getSpecifications().length - 1 ? 1 : 0,
                     borderBottomColor: colors.borderColor,
                   }}
                 >
-                  <Text style={{ color: colors.secondaryTextColor, fontSize: 16 }}>{spec.label}</Text>
-                  <Text style={{ color: colors.textColor, fontSize: 16, fontWeight: '500' }}>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.base }}>{spec.label}</Text>
+                  <Text style={{ color: colors.textColor, fontSize: TextSizes.base, fontWeight: '500' }}>
                     {spec.value}
                   </Text>
                 </View>
@@ -716,7 +804,7 @@ export default function BuyItemScreen() {
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="time-outline" size={16} color={colors.secondaryTextColor} />
-                <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
                   Listed {formatDate(product.created_at)}
                 </Text>
               </View>
@@ -736,7 +824,7 @@ export default function BuyItemScreen() {
           paddingLeft: Math.max(insets.left, 24),
           paddingRight: Math.max(insets.right, 24),
           paddingBottom: insets.bottom + 16,
-          paddingTop: 16,
+          paddingTop: PaddingSizes.md,
           backgroundColor: colors.backgroundColor,
           flexDirection: 'row',
           gap: 12,
@@ -770,7 +858,7 @@ export default function BuyItemScreen() {
                 }}
               >
                 <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: TextSizes.lg, fontWeight: 'bold' }}>
                   Edit Listing
                 </Text>
               </LinearGradient>
@@ -799,7 +887,7 @@ export default function BuyItemScreen() {
                 }}
               >
                 <Ionicons name="flash" size={20} color="#FFFFFF" />
-                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: TextSizes.lg, fontWeight: 'bold' }}>
                   Buy Now
                 </Text>
               </LinearGradient>
@@ -850,6 +938,16 @@ export default function BuyItemScreen() {
           onReported={() => {
             // Optionally show confirmation
           }}
+        />
+      )}
+
+      {/* Share Modal */}
+      {product && (
+        <ShareModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          onShare={handleShare}
+          productName={product.name}
         />
       )}
     </KeyboardAvoidingView>

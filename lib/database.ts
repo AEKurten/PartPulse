@@ -41,6 +41,27 @@ export async function createProfile(profile: {
   avatar_url?: string;
   bio?: string;
 }): Promise<Profile | null> {
+  // Try using the RPC function first (bypasses RLS)
+  // This is the preferred method as it works even during signup
+  const { data: rpcData, error: rpcError } = await supabase.rpc('create_user_profile', {
+    p_id: profile.id,
+    p_username: profile.username,
+    p_full_name: profile.full_name || null,
+    p_avatar_url: profile.avatar_url || null,
+    p_bio: profile.bio || null,
+  });
+
+  if (!rpcError && rpcData) {
+    return rpcData as Profile;
+  }
+
+  // Log RPC error but don't fail yet - try fallback
+  if (rpcError) {
+    console.log('RPC function error (trying fallback):', rpcError);
+  }
+
+  // Fallback to direct insert if RPC function doesn't exist or fails
+  // This will only work if the user is authenticated and RLS allows it
   const { data, error } = await supabase
     .from('profiles')
     .insert(profile)
@@ -48,7 +69,7 @@ export async function createProfile(profile: {
     .single();
 
   if (error) {
-    console.error('Error creating profile:', error);
+    console.error('Error creating profile (both methods failed):', error);
     return null;
   }
 

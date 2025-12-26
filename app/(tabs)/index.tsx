@@ -4,12 +4,16 @@ import { ProductCard } from '@/components/product-card';
 import { SearchBar } from '@/components/search-bar';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingProductCard } from '@/components/trending-product-card';
+import { TextSizes, PaddingSizes, getPadding } from '@/constants/platform-styles';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { getTrendingProducts } from '@/lib/analytics';
+import { getProducts } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,29 +21,41 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserData } from '../Helpers/UserDetailsHelper';
+import { useAuthStore } from '../stores/useAuthStore';
 
-// Mock product data with Unsplash images
-const recommendedProducts = [
-  { id: "1", name: 'RTX 4090', price: '$1,599', condition: 'A+', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-  { id: "2", name: 'Ryzen 9 7950X', price: '$549', condition: 'B', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80' },
-  { id: "3", name: '32GB DDR5 RAM', price: '$199', condition: 'A', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80' },
-  { id: "4", name: '1TB NVMe SSD', price: '$89', condition: 'C', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80' },
-];
+interface RecommendedProduct {
+  id: string;
+  name: string;
+  price: string;
+  condition: string;
+  image: string;
+}
 
-const trendingProducts = [
-  { id: 5, name: 'NVIDIA GeForce RTX 4080 Super', price: '$999', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=300&fit=crop&q=80', rating: 4.8, sellerName: 'TechGuru', aiCertified: true },
-  { id: 6, name: 'Intel i9-14900K', price: '$579', condition: 'Like New', image: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=400&h=300&fit=crop&q=80', rating: 4.9, sellerName: 'PCBuilder Pro', aiCertified: true },
-  { id: 7, name: 'ASUS ROG Motherboard', price: '$349', condition: 'Excellent', image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop&q=80', rating: 4.7, sellerName: 'Hardware Haven', aiCertified: false },
-];
+interface TrendingProduct {
+  id: string;
+  name: string;
+  price: string;
+  condition: string;
+  image: string;
+  rating: number;
+  sellerName: string;
+  aiCertified: boolean;
+}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+  const { user } = useAuthStore();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [recommendedProducts, setRecommendedProducts] = useState<RecommendedProduct[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<TrendingProduct[]>([]);
+  const [loadingRecommended, setLoadingRecommended] = useState(true);
+  const [loadingTrending, setLoadingTrending] = useState(true);
+  const [wishlistMap, setWishlistMap] = useState<Record<string, boolean>>({});
   const buttonsOpacity = useSharedValue(1);
   const buttonsWidth = useSharedValue(56);
   const buttonsMargin = useSharedValue(12);
@@ -66,6 +82,217 @@ export default function HomeScreen() {
 
   const USERNAME = useUserData()?.name || 'User';
 
+  // Fetch recommended products
+  useEffect(() => {
+    const fetchRecommended = async () => {
+      try {
+        setLoadingRecommended(true);
+        const products = await getProducts({
+          status: 'active',
+          limit: 4,
+        });
+
+        const recommended = products.map((product) => {
+          // Get price from database - ensure we're using the actual price value
+          let priceValue: number;
+          if (typeof product.price === 'number') {
+            priceValue = product.price;
+          } else if (product.price) {
+            priceValue = parseFloat(product.price.toString()) || 0;
+          } else {
+            priceValue = 0;
+          }
+          
+          return {
+            id: product.id,
+            name: product.name,
+            price: priceValue > 0 ? priceValue.toFixed(2) : '0.00', // Just the number, ProductCard adds "R " prefix
+            condition: product.condition || 'N/A',
+            image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '',
+          };
+        });
+
+        setRecommendedProducts(recommended);
+      } catch (error) {
+        console.error('Error fetching recommended products:', error);
+        setRecommendedProducts([]);
+      } finally {
+        setLoadingRecommended(false);
+      }
+    };
+
+    fetchRecommended();
+  }, []);
+
+  // Fetch trending products (top 5 most viewed)
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        setLoadingTrending(true);
+        
+        // Get view counts grouped by product_id
+        const { data: viewCounts, error: viewsError } = await supabase
+          .from('product_views')
+          .select('product_id');
+
+        if (viewsError) {
+          console.error('Error fetching view counts:', viewsError);
+        }
+
+        // Count views per product
+        const viewCountMap: Record<string, number> = {};
+        viewCounts?.forEach((view: any) => {
+          viewCountMap[view.product_id] = (viewCountMap[view.product_id] || 0) + 1;
+        });
+
+        // Get all active products
+        const { data: allProducts, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('status', 'active')
+          .limit(100);
+
+        if (productsError) {
+          console.error('Error fetching products:', productsError);
+          setTrendingProducts([]);
+          return;
+        }
+
+        // Sort by view count and take top 5
+        const sorted = (allProducts || [])
+          .map((product: any) => ({
+            ...product,
+            viewCount: viewCountMap[product.id] || 0,
+          }))
+          .sort((a, b) => b.viewCount - a.viewCount)
+          .slice(0, 5);
+
+        // Fetch seller names for trending products
+        const trendingWithSellers = await Promise.all(
+          sorted.map(async (product: any) => {
+            let sellerName = 'Unknown Seller';
+            if (product.seller_id) {
+              const { data: seller } = await supabase
+                .from('profiles')
+                .select('username, full_name')
+                .eq('id', product.seller_id)
+                .single();
+              
+              if (seller) {
+                sellerName = seller.full_name || seller.username || 'Unknown Seller';
+              }
+            }
+
+            // Format price - ensure we use the actual database price
+            let priceValue: number;
+            if (typeof product.price === 'number') {
+              priceValue = product.price;
+            } else if (product.price) {
+              priceValue = parseFloat(product.price.toString()) || 0;
+            } else {
+              priceValue = 0;
+            }
+            
+            return {
+              id: product.id,
+              name: product.name,
+              price: priceValue > 0 ? `R ${priceValue.toFixed(2)}` : 'R 0.00', // Format with R prefix for TrendingProductCard
+              condition: product.condition || 'N/A',
+              image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '',
+              rating: 4.5, // Default rating, can be enhanced later
+              sellerName: sellerName,
+              aiCertified: false, // Can be enhanced later
+            };
+          })
+        );
+
+        setTrendingProducts(trendingWithSellers);
+      } catch (error) {
+        console.error('Error fetching trending products:', error);
+        setTrendingProducts([]);
+      } finally {
+        setLoadingTrending(false);
+      }
+    };
+
+    fetchTrending();
+  }, []);
+
+  // Fetch wishlist status
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!user?.id) {
+        setWishlistMap({});
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('wishlist')
+          .select('product_id')
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error fetching wishlist:', error);
+          return;
+        }
+
+        const map: Record<string, boolean> = {};
+        data?.forEach((item) => {
+          map[item.product_id] = true;
+        });
+        setWishlistMap(map);
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+      }
+    };
+
+    fetchWishlist();
+  }, [user?.id]);
+
+  const handleWishlistPress = async (productId: string, shouldBeWishlisted: boolean) => {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      if (shouldBeWishlisted) {
+        const { error } = await supabase
+          .from('wishlist')
+          .insert({
+            user_id: user.id,
+            product_id: productId,
+          });
+
+        if (error && error.code !== '23505') {
+          console.error('Error adding to wishlist:', error);
+          return;
+        }
+
+        setWishlistMap((prev) => ({ ...prev, [productId]: true }));
+      } else {
+        const { error } = await supabase
+          .from('wishlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+
+        if (error) {
+          console.error('Error removing from wishlist:', error);
+          return;
+        }
+
+        setWishlistMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[productId];
+          return newMap;
+        });
+      }
+    } catch (error) {
+      console.error('Error updating wishlist:', error);
+    }
+  };
+
   return (
     <View
       className="flex-1"
@@ -79,13 +306,13 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingLeft: Math.max(insets.left, 24),
-          paddingRight: Math.max(insets.right, 24),
-          paddingBottom: 24,
+          paddingLeft: Math.max(insets.left, PaddingSizes.lg),
+          paddingRight: Math.max(insets.right, PaddingSizes.lg),
+          paddingBottom: PaddingSizes.lg,
         }}
       >
         {/* Welcome Message with Chats Button */}
-        <View style={{ paddingTop: 24, marginBottom: 32 }}>
+        <View style={{ paddingTop: PaddingSizes.lg, marginBottom: getPadding(32) }}>
           <View
             style={{
               flexDirection: 'row',
@@ -94,7 +321,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: PaddingSizes.sm }}>
                 <View
                   style={{
                     width: 48,
@@ -103,16 +330,16 @@ export default function HomeScreen() {
                     backgroundColor: '#EC4899' + '20',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    marginRight: 12,
+                    marginRight: PaddingSizes.base,
                   }}
                 >
                   <Ionicons name="home" size={24} color="#EC4899" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.textColor, fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>
+                  <Text style={{ color: colors.textColor, fontSize: TextSizes['2xl'], fontWeight: 'bold', marginBottom: PaddingSizes.xs }}>
                     {greeting}, {USERNAME}
                   </Text>
-                  <Text style={{ color: colors.secondaryTextColor, fontSize: 14 }}>
+                  <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
                     Welcome back to PartPulse
                   </Text>
                 </View>
@@ -137,10 +364,19 @@ export default function HomeScreen() {
         </View>
 
         {/* Search Bar with Quick Access Buttons */}
-        <View style={{ marginBottom: 32 }}>
+        <View style={{ marginBottom: getPadding(32) }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
-              <SearchBar onFocus={handleSearchFocus} onBlur={handleSearchBlur} />
+              <SearchBar 
+                onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
+                onSubmit={(query) => {
+                  router.push({
+                    pathname: '/(tabs)/market',
+                    params: { search: query }
+                  });
+                }}
+              />
             </View>
 
             {/* Wishlist Button */}
@@ -185,8 +421,8 @@ export default function HomeScreen() {
                 <View
                   style={{
                     position: 'absolute',
-                    top: 8,
-                    right: 8,
+                    top: PaddingSizes.sm,
+                    right: PaddingSizes.sm,
                     width: 10,
                     height: 10,
                     borderRadius: 5,
@@ -201,22 +437,47 @@ export default function HomeScreen() {
         </View>
 
         {/* Recommended Items Section */}
-        <View style={{ marginBottom: 32 }}>
+        <View style={{ marginBottom: getPadding(32) }}>
           <SectionHeader
             title="Recommended for You"
             onShowAllPress={() => router.push('/(tabs)/market')}
           />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: 24 }}
-          >
-            {recommendedProducts.map((product) => (
-              <View key={product.id} style={{ width: 180 }}>
-                <ProductCard {...product} />
-              </View>
-            ))}
-          </ScrollView>
+          {loadingRecommended ? (
+            <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#EC4899" />
+            </View>
+          ) : recommendedProducts.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: PaddingSizes.lg }}
+            >
+              {recommendedProducts.map((product) => (
+                <View key={product.id} style={{ width: 180 }}>
+                  <ProductCard
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    condition={product.condition}
+                    image={product.image}
+                    isWishlisted={wishlistMap[product.id] || false}
+                    onWishlistPress={handleWishlistPress}
+                    onPress={() => router.push({
+                      pathname: '/buy-item',
+                      params: { productId: product.id }
+                    })}
+                    source="home_recommended"
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={{ padding: PaddingSizes.lg, alignItems: 'center' }}>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
+                No products available
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Trending Products Section */}
@@ -225,17 +486,42 @@ export default function HomeScreen() {
             title="Trending Products"
             onShowAllPress={() => router.push('/(tabs)/market')}
           />
-          <View>
-            {trendingProducts.map((product) => (
-              <View key={product.id} style={{ marginBottom: 16 }}>
-                <TrendingProductCard {...product} />
-              </View>
-            ))}
-          </View>
+          {loadingTrending ? (
+            <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#EC4899" />
+            </View>
+          ) : trendingProducts.length > 0 ? (
+            <View>
+              {trendingProducts.map((product, index) => (
+                <View key={product.id} style={{ marginBottom: PaddingSizes.md }}>
+                  <TrendingProductCard
+                    id={index + 1}
+                    name={product.name}
+                    price={product.price}
+                    condition={product.condition}
+                    image={product.image}
+                    rating={product.rating}
+                    sellerName={product.sellerName}
+                    aiCertified={product.aiCertified}
+                    href={{
+                      pathname: '/buy-item',
+                      params: { productId: product.id }
+                    } as any}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={{ padding: PaddingSizes.lg, alignItems: 'center' }}>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
+                No trending products available
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Ad Banner */}
-        <View style={{ marginTop: 32, marginBottom: 16 }}>
+        <View style={{ marginTop: getPadding(32), marginBottom: PaddingSizes.md }}>
           <AdBanner onUpgradePress={() => setShowPaywall(true)} />
         </View>
       </ScrollView>

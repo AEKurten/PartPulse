@@ -1,8 +1,11 @@
+import { TextSizes, PaddingSizes, getPadding, getFontSize } from '@/constants/platform-styles';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { trackProductClick } from '@/lib/analytics';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useAuthStore } from '@/app/stores/useAuthStore';
 
 type ProductCardProps = {
   id: string;
@@ -15,10 +18,12 @@ type ProductCardProps = {
   onPress?: () => void;
   onWishlistPress?: (productId: string, isWishlisted: boolean) => void;
   isWishlisted?: boolean;
+  source?: string; // Track where the click came from (e.g., 'marketplace', 'wishlist', 'search')
 };
 
-export function ProductCard({ id, name, price, condition, image, rating, status, onPress, onWishlistPress, isWishlisted: initialWishlisted }: ProductCardProps) {
+export function ProductCard({ id, name, price, condition, image, rating, status, onPress, onWishlistPress, isWishlisted: initialWishlisted, source }: ProductCardProps) {
   const colors = useThemeColors();
+  const { user } = useAuthStore();
   const [isWishlisted, setIsWishlisted] = useState(initialWishlisted ?? false);
 
   // Update local state when prop changes
@@ -36,14 +41,23 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
     onWishlistPress?.(id, newState);
   };
 
+  const handlePress = () => {
+    // Track click before navigating
+    trackProductClick(id, user?.id || null, {
+      source: source || 'unknown',
+      referrer: 'product_card',
+    });
+    onPress?.();
+  };
+
   return (
-    <Pressable onPress={onPress} style={{ flex: 1 }}>
+    <Pressable onPress={handlePress} style={{ flex: 1 }}>
       {({ pressed }) => (
         <View
           style={{
             flex: 1,
             borderRadius: 16,
-            padding: 8,
+            padding: PaddingSizes.sm,
             opacity: pressed ? 0.8 : 1,
           }}
         >
@@ -54,7 +68,7 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
                 aspectRatio: 1,
                 borderRadius: 12,
                 backgroundColor: colors.iconBackground,
-                marginBottom: 12,
+                marginBottom: PaddingSizes.base,
                 overflow: 'hidden',
                 opacity: status === 'sold' || status === 'paused' ? 0.6 : 1,
               }}
@@ -70,26 +84,26 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
               <View
                 style={{
                   position: 'absolute',
-                  top: 8,
-                  left: 8,
+                  top: PaddingSizes.sm,
+                  left: PaddingSizes.sm,
                   backgroundColor: 
                     status === 'sold' ? '#10B981' : 
                     status === 'draft' ? '#F59E0B' : 
                     status === 'paused' ? '#6B7280' : 
                     'transparent',
                   borderRadius: 8,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
+                  paddingHorizontal: PaddingSizes.sm,
+                  paddingVertical: PaddingSizes.xs,
                   zIndex: 10,
                 }}
               >
                 <Text
-                  style={{
-                    color: '#FFFFFF',
-                    fontSize: 10,
-                    fontWeight: '700',
-                    textTransform: 'uppercase',
-                  }}
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: getFontSize(10),
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                }}
                 >
                   {status === 'sold' ? 'Sold' : status === 'draft' ? 'Draft' : status === 'paused' ? 'Paused' : ''}
                 </Text>
@@ -103,8 +117,8 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
                 }}
                 style={{
                   position: 'absolute',
-                  top: 8,
-                  right: 8,
+                  top: PaddingSizes.sm,
+                  right: PaddingSizes.sm,
                   backgroundColor: 'rgba(0, 0, 0, 0.5)',
                   borderRadius: 20,
                   width: 36,
@@ -121,8 +135,17 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
               </Pressable>
             )}
           </View>
-          <View className="flex-1 flex-row justify-between w-full items-start">
-            <Text style={{ color: colors.textColor, fontWeight: '500', fontSize: 16, flex: 1, marginRight: 8 }} numberOfLines={1}>
+          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start', marginBottom: PaddingSizes.sm }}>
+            <Text 
+              style={{ 
+                color: colors.textColor, 
+                fontWeight: '500', 
+                fontSize: TextSizes.base, 
+                flex: 1, 
+                marginRight: PaddingSizes.sm 
+              }} 
+              numberOfLines={2}
+            >
               {name}
             </Text>
             <View
@@ -134,8 +157,8 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
                         condition.includes('C ') || condition === 'C' ? '#F97316' + '20' :
                           '#EF4444' + '20',
                 borderRadius: 8,
-                paddingHorizontal: 8,
-                paddingVertical: 5,
+                paddingHorizontal: PaddingSizes.sm,
+                paddingVertical: getPadding(5),
                 borderWidth: 1.5,
                 borderColor:
                   condition.includes('A+') ? '#10B981' :
@@ -143,6 +166,7 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
                       condition.includes('B ') || condition === 'B' ? '#F59E0B' :
                         condition.includes('C ') || condition === 'C' ? '#F97316' :
                           '#EF4444',
+                flexShrink: 0,
               }}
             >
               <Text
@@ -153,15 +177,26 @@ export function ProductCard({ id, name, price, condition, image, rating, status,
                         condition.includes('B ') || condition === 'B' ? '#F59E0B' :
                           condition.includes('C ') || condition === 'C' ? '#F97316' :
                             '#EF4444',
-                  fontSize: 12,
+                  fontSize: TextSizes.xs,
                   fontWeight: '700',
                 }}
+                numberOfLines={1}
               >
                 {condition}
               </Text>
             </View>
           </View>
-          <Text style={{ color: colors.textColor, fontWeight: 'bold', fontSize: 22, marginTop: 8 }}>{price ? "R " + price : "N/A"}</Text>
+          <Text 
+            style={{ 
+              color: colors.textColor, 
+              fontWeight: 'bold', 
+              fontSize: TextSizes['2xl'], 
+              marginTop: PaddingSizes.sm 
+            }}
+            numberOfLines={1}
+          >
+            {price ? "R " + price : "N/A"}
+          </Text>
 
         </View>
       )}

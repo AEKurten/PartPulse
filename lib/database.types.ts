@@ -422,6 +422,101 @@ export interface Database {
           updated_at?: string;
         };
       };
+      product_views: {
+        Row: {
+          id: string;
+          product_id: string;
+          user_id: string | null;
+          viewed_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          user_id?: string | null;
+          viewed_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          user_id?: string | null;
+          viewed_at?: string;
+        };
+      };
+      product_clicks: {
+        Row: {
+          id: string;
+          product_id: string;
+          user_id: string | null;
+          clicked_at: string;
+          source: string | null;
+          referrer: string | null;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          user_id?: string | null;
+          clicked_at?: string;
+          source?: string | null;
+          referrer?: string | null;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          user_id?: string | null;
+          clicked_at?: string;
+          source?: string | null;
+          referrer?: string | null;
+        };
+      };
+      product_shares: {
+        Row: {
+          id: string;
+          product_id: string;
+          user_id: string;
+          share_method: 'link' | 'social' | 'message' | 'other';
+          shared_at: string;
+          platform: string | null;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          user_id: string;
+          share_method: 'link' | 'social' | 'message' | 'other';
+          shared_at?: string;
+          platform?: string | null;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          user_id?: string;
+          share_method?: 'link' | 'social' | 'message' | 'other';
+          shared_at?: string;
+          platform?: string | null;
+        };
+      };
+      product_impressions: {
+        Row: {
+          id: string;
+          product_id: string;
+          user_id: string | null;
+          source: string | null;
+          impressed_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          user_id?: string | null;
+          source?: string | null;
+          impressed_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          user_id?: string | null;
+          source?: string | null;
+          impressed_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

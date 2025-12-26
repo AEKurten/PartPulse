@@ -1,3 +1,4 @@
+import { TextSizes, PaddingSizes } from '@/constants/platform-styles';
 import { Ionicons } from '@expo/vector-icons';
 import { Href, Link } from 'expo-router';
 import { Image } from 'expo-image';
@@ -35,7 +36,7 @@ export function TrendingProductCard({
             flex: 1,
             backgroundColor: colors.cardBackground,
             borderRadius: 16,
-            padding: 12,
+            padding: PaddingSizes.base,
             opacity: pressed ? 0.8 : 1,
             marginRight: 0,
           }}
@@ -49,7 +50,7 @@ export function TrendingProductCard({
                 height: 80,
                 backgroundColor: colors.iconBackground,
                 borderRadius: 12,
-                marginRight: 12,
+                marginRight: PaddingSizes.base,
                 overflow: 'hidden',
               }}
             >
@@ -60,35 +61,82 @@ export function TrendingProductCard({
               />
             </View>
             {/* Top Section: Name and Price */}
-            <View className="flex-1 justify-between">
-              <View className="flex-row justify-between">
-                <Text style={{ color: colors.textColor, fontWeight: '600', fontSize: 16, marginBottom: 4, width: '66%' }} numberOfLines={2}>
+            <View style={{ flex: 1, justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: PaddingSizes.xs }}>
+                <Text 
+                  style={{ 
+                    color: colors.textColor, 
+                    fontWeight: '600', 
+                    fontSize: TextSizes.base, 
+                    flex: 1,
+                    marginRight: PaddingSizes.sm,
+                  }} 
+                  numberOfLines={2}
+                >
                   {name}
                 </Text>
-                <Text style={{ color: colors.textColor, fontWeight: 'bold', fontSize: 20, textAlign: 'right' }}>
+                <Text 
+                  style={{ 
+                    color: colors.textColor, 
+                    fontWeight: 'bold', 
+                    fontSize: TextSizes.xl,
+                    flexShrink: 1,
+                    textAlign: 'right',
+                  }}
+                  numberOfLines={2}
+                >
                   {price}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, flexShrink: 1 }}>
                   <Ionicons name="person-circle-outline" size={14} color={colors.secondaryTextColor} />
-                  <Text style={{ color: colors.secondaryTextColor, fontSize: 12, marginLeft: 8 }}>Sold by</Text>
-                  <Text style={{ color: colors.textColor, fontWeight: '600', fontSize: 12, marginLeft: 4 }}>{sellerName}</Text>
+                  <Text 
+                    style={{ 
+                      color: colors.secondaryTextColor, 
+                      fontSize: TextSizes.xs, 
+                      marginLeft: PaddingSizes.sm 
+                    }}
+                    numberOfLines={1}
+                  >
+                    Sold by
+                  </Text>
+                  <Text 
+                    style={{ 
+                      color: colors.textColor, 
+                      fontWeight: '600', 
+                      fontSize: TextSizes.xs, 
+                      marginLeft: PaddingSizes.xs 
+                    }}
+                    numberOfLines={1}
+                  >
+                    {sellerName}
+                  </Text>
                 </View>
                 {aiCertified && (
                   <View
                     style={{
                       backgroundColor: '#EC4899',
                       borderRadius: 6,
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
+                      paddingHorizontal: PaddingSizes.sm,
+                      paddingVertical: PaddingSizes.xs,
                       flexDirection: 'row',
                       alignItems: 'center',
-                      marginLeft: 8,
+                      marginLeft: PaddingSizes.sm,
+                      flexShrink: 0,
                     }}
                   >
                     <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-                    <Text className="text-white font-semibold text-xs ml-1">AI</Text>
+                    <Text 
+                      style={{ 
+                        color: '#FFFFFF', 
+                        fontWeight: '600', 
+                        fontSize: TextSizes.xs,
+                        marginLeft: 4 
+                      }}
+                    >
+                      AI
+                    </Text>
                   </View>
                 )}
               </View>
