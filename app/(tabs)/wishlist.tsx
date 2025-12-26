@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View, ViewToken } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, ScrollView, Text, View, ViewToken } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/useAuthStore';
 
@@ -28,24 +29,17 @@ export default function WishlistScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [impressedProducts, setImpressedProducts] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchWishlist();
-  }, [user?.id]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchWishlist();
-    setRefreshing(false);
-  };
-
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async (skipLoading = false) => {
     if (!user?.id) {
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
     try {
-      setLoading(true);
+      if (!skipLoading) {
+        setLoading(true);
+      }
       // Fetch wishlist items with product details
       const { data, error } = await supabase
         .from('wishlist')
@@ -65,6 +59,7 @@ export default function WishlistScreen() {
       if (error) {
         console.error('Error fetching wishlist:', error);
         Alert.alert('Error', 'Failed to load wishlist');
+        setRefreshing(false);
         return;
       }
 
@@ -89,8 +84,25 @@ export default function WishlistScreen() {
       Alert.alert('Error', 'Failed to load wishlist');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchWishlist();
+  }, [fetchWishlist]);
+
+  // Refresh wishlist when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchWishlist(true); // Skip loading state when refreshing on focus
+    }, [fetchWishlist])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchWishlist(true); // Skip loading state during refresh
+  }, [fetchWishlist]);
 
   const handleWishlistPress = async (productId: string, isWishlisted: boolean) => {
     if (!user?.id) {
@@ -244,13 +256,22 @@ export default function WishlistScreen() {
           )}
         />
       ) : (
-        <View
-          style={{
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
             paddingHorizontal: PaddingSizes.lg,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#EC4899"
+              colors={["#EC4899"]}
+            />
+          }
         >
           <View
             style={{
@@ -303,7 +324,7 @@ export default function WishlistScreen() {
               Browse Products
             </Text>
           </Pressable>
-        </View>
+        </ScrollView>
       )}
     </View>
   );
