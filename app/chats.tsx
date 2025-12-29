@@ -1,48 +1,116 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { StatusBar } from 'expo-status-bar';
+import { useChats } from '@/hooks/use-database';
+import { useAuthStore } from './stores/useAuthStore';
+import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from 'react';
 
-// Mock chat conversations
-const conversations = [
-  {
-    id: 1,
-    sellerName: 'TechGuru',
-    sellerAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80',
-    productName: 'NVIDIA GeForce RTX 4090',
-    productImage: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=100&h=100&fit=crop&q=80',
-    lastMessage: "Hi, I'm interested in your NVIDIA GeForce RTX 4090",
-    timestamp: '2 hours ago',
-    unreadCount: 2,
-  },
-  {
-    id: 2,
-    sellerName: 'PCBuilder Pro',
-    sellerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80',
-    productName: 'Intel i9-14900K',
-    productImage: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=100&h=100&fit=crop&q=80',
-    lastMessage: 'Is this still available?',
-    timestamp: '1 day ago',
-    unreadCount: 0,
-  },
-  {
-    id: 3,
-    sellerName: 'Hardware Haven',
-    sellerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&q=80',
-    productName: 'ASUS ROG Motherboard',
-    productImage: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=100&h=100&fit=crop&q=80',
-    lastMessage: 'Thanks for your interest! Yes, it is.',
-    timestamp: '3 days ago',
-    unreadCount: 1,
-  },
-];
+interface ChatWithDetails {
+  id: string;
+  sellerName: string;
+  sellerAvatar: string | null;
+  productName: string;
+  productImage: string;
+  lastMessage: string;
+  timestamp: string;
+  unreadCount: number;
+}
 
 export default function ChatsScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { user } = useAuthStore();
+  const { chats, loading } = useChats(user?.id || null);
+  const [conversations, setConversations] = useState<ChatWithDetails[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(true);
+
+  useEffect(() => {
+    const fetchChatDetails = async () => {
+      if (!chats.length) {
+        setConversations([]);
+        setLoadingDetails(false);
+        return;
+      }
+
+      setLoadingDetails(true);
+      const chatDetails = await Promise.all(
+        chats.map(async (chat) => {
+          // Determine the other user (seller if current user is buyer, buyer if current user is seller)
+          const otherUserId = chat.buyer_id === user?.id ? chat.seller_id : chat.buyer_id;
+          
+          // Fetch other user's profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, full_name, avatar_url')
+            .eq('id', otherUserId)
+            .single();
+
+          // Fetch product if available
+          let productName = 'No product';
+          let productImage = '';
+          if (chat.product_id) {
+            const { data: product } = await supabase
+              .from('products')
+              .select('name, images')
+              .eq('id', chat.product_id)
+              .single();
+            if (product) {
+              productName = product.name;
+              productImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '';
+            }
+          }
+
+          // Count unread messages
+          const { count } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('read', false)
+            .neq('sender_id', user?.id || '');
+
+          // Format timestamp
+          const formatTimestamp = (dateString: string | null) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+          };
+
+          return {
+            id: chat.id,
+            sellerName: profile?.full_name || profile?.username || 'Unknown User',
+            sellerAvatar: profile?.avatar_url || null,
+            productName,
+            productImage,
+            lastMessage: chat.last_message || 'No messages yet',
+            timestamp: formatTimestamp(chat.last_message_at || chat.updated_at),
+            unreadCount: count || 0,
+          };
+        })
+      );
+
+      setConversations(chatDetails);
+      setLoadingDetails(false);
+    };
+
+    if (!loading && chats) {
+      fetchChatDetails();
+    }
+  }, [chats, loading, user?.id]);
 
   return (
     <View
@@ -105,7 +173,19 @@ export default function ChatsScreen() {
           paddingBottom: 24,
         }}
       >
-        {conversations.map((conversation) => (
+        {loading || loadingDetails ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
+            <ActivityIndicator size="large" color="#EC4899" />
+          </View>
+        ) : conversations.length === 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
+            <Ionicons name="chatbubbles-outline" size={64} color={colors.secondaryTextColor} />
+            <Text style={{ color: colors.secondaryTextColor, fontSize: 16, marginTop: 16 }}>
+              No conversations yet
+            </Text>
+          </View>
+        ) : (
+          conversations.map((conversation) => (
           <Pressable
             key={conversation.id}
             onPress={() => {
@@ -132,13 +212,19 @@ export default function ChatsScreen() {
                     overflow: 'hidden',
                     marginRight: 12,
                     backgroundColor: colors.iconBackground,
+                    justifyContent: 'center',
+                    alignItems: 'center',
                   }}
                 >
-                  <Image
-                    source={{ uri: conversation.sellerAvatar }}
-                    style={{ width: '100%', height: '100%' }}
-                    contentFit="cover"
-                  />
+                  {conversation.sellerAvatar ? (
+                    <Image
+                      source={{ uri: conversation.sellerAvatar }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Ionicons name="person" size={28} color={colors.secondaryTextColor} />
+                  )}
                 </View>
 
                 {/* Conversation Info */}
@@ -168,21 +254,36 @@ export default function ChatsScreen() {
                       gap: 8,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        backgroundColor: colors.iconBackground,
-                      }}
-                    >
-                      <Image
-                        source={{ uri: conversation.productImage }}
-                        style={{ width: '100%', height: '100%' }}
-                        contentFit="cover"
-                      />
-                    </View>
+                    {conversation.productImage ? (
+                      <View
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                          backgroundColor: colors.iconBackground,
+                        }}
+                      >
+                        <Image
+                          source={{ uri: conversation.productImage }}
+                          style={{ width: '100%', height: '100%' }}
+                          contentFit="cover"
+                        />
+                      </View>
+                    ) : (
+                      <View
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          backgroundColor: colors.iconBackground,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Ionicons name="cube-outline" size={16} color={colors.secondaryTextColor} />
+                      </View>
+                    )}
                     <Text style={{ color: colors.secondaryTextColor, fontSize: 12, flex: 1 }} numberOfLines={1}>
                       {conversation.productName}
                     </Text>
@@ -213,7 +314,7 @@ export default function ChatsScreen() {
                           alignItems: 'center',
                         }}
                       >
-                        <Text className="text-white text-xs font-bold">
+                        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' }}>
                           {conversation.unreadCount}
                         </Text>
                       </View>
@@ -223,7 +324,8 @@ export default function ChatsScreen() {
               </View>
             )}
           </Pressable>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );

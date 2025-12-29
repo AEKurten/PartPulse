@@ -4,111 +4,81 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// Mock conversation data (in real app, this would come from route params or API)
-const getConversationData = (id: string) => {
-  const conversations: Record<string, any> = {
-    '1': {
-      id: 1,
-      sellerName: 'TechGuru',
-      sellerAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80',
-      productName: 'NVIDIA GeForce RTX 4090',
-      productPrice: '$1,599',
-      productImage: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=200&h=200&fit=crop&q=80',
-      messages: [
-        {
-          id: 1,
-          text: "Hi, I'm interested in your NVIDIA GeForce RTX 4090",
-          sender: 'user',
-          timestamp: '10:30 AM',
-        },
-        {
-          id: 2,
-          text: 'Hello! Thanks for your interest. Yes, it\'s still available. The card is in excellent condition.',
-          sender: 'seller',
-          timestamp: '10:32 AM',
-        },
-        {
-          id: 3,
-          text: 'Great! Can you tell me more about its condition? Any issues or concerns?',
-          sender: 'user',
-          timestamp: '10:35 AM',
-        },
-        {
-          id: 4,
-          text: 'Absolutely! The card has been used for about 3 months, mainly for gaming. No mining, no overclocking. It\'s been kept in a well-ventilated case. Original packaging and all accessories included.',
-          sender: 'seller',
-          timestamp: '10:37 AM',
-        },
-        {
-          id: 5,
-          text: 'That sounds perfect! Is the price negotiable?',
-          sender: 'user',
-          timestamp: '10:40 AM',
-        },
-        {
-          id: 6,
-          text: 'I\'m open to reasonable offers. What were you thinking?',
-          sender: 'seller',
-          timestamp: '10:42 AM',
-        },
-      ],
-    },
-    '2': {
-      id: 2,
-      sellerName: 'PCBuilder Pro',
-      sellerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80',
-      productName: 'Intel i9-14900K',
-      productPrice: '$579',
-      productImage: 'https://images.unsplash.com/photo-1587825147138-346b006e0937?w=200&h=200&fit=crop&q=80',
-      messages: [
-        {
-          id: 1,
-          text: 'Is this still available?',
-          sender: 'user',
-          timestamp: 'Yesterday',
-        },
-        {
-          id: 2,
-          text: 'Yes, it is! Are you interested?',
-          sender: 'seller',
-          timestamp: 'Yesterday',
-        },
-      ],
-    },
-    '3': {
-      id: 3,
-      sellerName: 'Hardware Haven',
-      sellerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&q=80',
-      productName: 'ASUS ROG Motherboard',
-      productPrice: '$349',
-      productImage: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=200&h=200&fit=crop&q=80',
-      messages: [
-        {
-          id: 1,
-          text: 'Thanks for your interest! Yes, it is.',
-          sender: 'seller',
-          timestamp: '3 days ago',
-        },
-      ],
-    },
-  };
-
-  return conversations[id] || conversations['1'];
-};
+import { useMessages } from '@/hooks/use-database';
+import { getChat, sendMessage, markMessagesAsRead } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from './stores/useAuthStore';
+import type { Chat, Message } from '@/lib/database.types';
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const params = useLocalSearchParams<{ id?: string }>();
-  const conversationId = params.id || '1';
-  const conversation = getConversationData(conversationId);
+  const conversationId = params.id;
+  const { user } = useAuthStore();
+  const { messages, loading: messagesLoading } = useMessages(conversationId || null);
+  const [chat, setChat] = useState<Chat | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sellerProfile, setSellerProfile] = useState<any>(null);
+  const [product, setProduct] = useState<any>(null);
   const [message, setMessage] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [sending, setSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const translateY = useRef(new Animated.Value(0)).current;
+
+  // Fetch chat details
+  useEffect(() => {
+    const fetchChatDetails = async () => {
+      if (!conversationId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      const chatData = await getChat(conversationId);
+      if (!chatData) {
+        Alert.alert('Error', 'Chat not found');
+        router.back();
+        setLoading(false);
+        return;
+      }
+
+      setChat(chatData);
+
+      // Determine the other user (seller if current user is buyer, buyer if current user is seller)
+      const otherUserId = chatData.buyer_id === user?.id ? chatData.seller_id : chatData.buyer_id;
+      
+      // Fetch other user's profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', otherUserId)
+        .single();
+      setSellerProfile(profile);
+
+      // Fetch product if available
+      if (chatData.product_id) {
+        const { data: productData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', chatData.product_id)
+          .single();
+        setProduct(productData);
+      }
+
+      // Mark messages as read
+      if (user?.id) {
+        await markMessagesAsRead(conversationId, user.id);
+      }
+
+      setLoading(false);
+    };
+
+    fetchChatDetails();
+  }, [conversationId, user?.id]);
 
   useEffect(() => {
     if (showMenu) {
@@ -121,19 +91,43 @@ export default function ChatScreen() {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: false });
     }, 100);
-  }, [conversation.messages]);
+  }, [messages]);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      // In real app, this would send the message to the backend
-      console.log('Sending message:', message);
-      setMessage('');
+  const handleSend = async () => {
+    if (!message.trim() || !conversationId || !user?.id || sending) {
+      return;
     }
+
+    setSending(true);
+    const sentMessage = await sendMessage({
+      chat_id: conversationId,
+      sender_id: user.id,
+      content: message.trim(),
+    });
+
+    if (sentMessage) {
+      setMessage('');
+    } else {
+      Alert.alert('Error', 'Failed to send message');
+    }
+    setSending(false);
   };
 
   const formatTime = (timestamp: string) => {
-    // Simple time formatting - in real app, use a proper date library
-    return timestamp;
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) {
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
   };
 
   // Pan responder for swipe down to dismiss
@@ -169,6 +163,20 @@ export default function ChatScreen() {
       },
     })
   ).current;
+
+  if (loading || !chat) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.backgroundColor, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#EC4899" />
+      </View>
+    );
+  }
+
+  const sellerName = sellerProfile?.full_name || sellerProfile?.username || 'Unknown User';
+  const sellerAvatar = sellerProfile?.avatar_url;
+  const productName = product?.name || 'No product';
+  const productPrice = product?.price ? `R ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}` : 'N/A';
+  const productImage = product?.images && Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '';
 
   return (
     <KeyboardAvoidingView
@@ -206,7 +214,7 @@ export default function ChatScreen() {
 
             {/* Seller Avatar - Clickable */}
             <Pressable
-              onPress={() => router.push('/seller-profile')}
+              onPress={() => router.push(`/seller-profile?id=${chat.seller_id}`)}
               style={{
                 width: 48,
                 height: 48,
@@ -216,18 +224,24 @@ export default function ChatScreen() {
                 backgroundColor: colors.iconBackground,
                 borderWidth: 2,
                 borderColor: '#EC4899' + '40',
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
             >
-              <Image
-                source={{ uri: conversation.sellerAvatar }}
-                style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
-              />
+              {sellerAvatar ? (
+                <Image
+                  source={{ uri: sellerAvatar }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              ) : (
+                <Ionicons name="person" size={24} color={colors.secondaryTextColor} />
+              )}
             </Pressable>
 
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.textColor, fontSize: 20, fontWeight: 'bold', marginBottom: 2 }}>
-                {conversation.sellerName}
+                {sellerName}
               </Text>
               <Text style={{ color: colors.secondaryTextColor, fontSize: 12 }}>
                 Active now
@@ -253,49 +267,66 @@ export default function ChatScreen() {
         </View>
 
         {/* Product Info Card */}
-        <Pressable
-          onPress={() => {
-            // Navigate to product
-            console.log('View product');
-          }}
-          style={{
-            backgroundColor: colors.cardBackground,
-            marginHorizontal: Math.max(insets.left, 24),
-            marginRight: Math.max(insets.right, 24),
-            marginTop: 12,
-            marginBottom: 8,
-            borderRadius: 12,
-            padding: 12,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <View
+        {product && (
+          <Pressable
+            onPress={() => {
+              router.push(`/buy-item?id=${product.id}`);
+            }}
             style={{
-              width: 60,
-              height: 60,
-              borderRadius: 8,
-              overflow: 'hidden',
-              marginRight: 12,
-              backgroundColor: colors.iconBackground,
+              backgroundColor: colors.cardBackground,
+              marginHorizontal: Math.max(insets.left, 24),
+              marginRight: Math.max(insets.right, 24),
+              marginTop: 12,
+              marginBottom: 8,
+              borderRadius: 12,
+              padding: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
             }}
           >
-            <Image
-              source={{ uri: conversation.productImage }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="cover"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
-              {conversation.productName}
-            </Text>
-            <Text style={{ color: '#EC4899', fontSize: 16, fontWeight: 'bold', marginTop: 4 }}>
-              {conversation.productPrice}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryTextColor} />
-        </Pressable>
+            {productImage ? (
+              <View
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  marginRight: 12,
+                  backgroundColor: colors.iconBackground,
+                }}
+              >
+                <Image
+                  source={{ uri: productImage }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              </View>
+            ) : (
+              <View
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 8,
+                  backgroundColor: colors.iconBackground,
+                  marginRight: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Ionicons name="cube-outline" size={24} color={colors.secondaryTextColor} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textColor, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
+                {productName}
+              </Text>
+              <Text style={{ color: '#EC4899', fontSize: 16, fontWeight: 'bold', marginTop: 4 }}>
+                {productPrice}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.secondaryTextColor} />
+          </Pressable>
+        )}
 
         {/* Messages */}
         <ScrollView
@@ -310,41 +341,56 @@ export default function ChatScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
-          {conversation.messages.map((msg: any) => (
-            <View
-              key={msg.id}
-              style={{
-                marginBottom: 16,
-                alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-              }}
-            >
-              <View
-                style={{
-                  maxWidth: '75%',
-                  backgroundColor: msg.sender === 'user' ? '#EC4899' : colors.cardBackground,
-                  borderRadius: 16,
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderTopLeftRadius: msg.sender === 'user' ? 16 : 4,
-                  borderTopRightRadius: msg.sender === 'user' ? 4 : 16,
-                }}
-              >
-                <Text style={{ color: msg.sender === 'user' ? '#FFFFFF' : colors.textColor, fontSize: 14, lineHeight: 20 }}>
-                  {msg.text}
-                </Text>
-                <Text
-                  style={{ 
-                    color: msg.sender === 'user' ? 'rgba(255, 255, 255, 0.8)' : colors.secondaryTextColor,
-                    fontSize: 12,
-                    marginTop: 4,
-                    textAlign: 'right'
+          {messagesLoading ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
+              <ActivityIndicator size="large" color="#EC4899" />
+            </View>
+          ) : messages.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
+              <Text style={{ color: colors.secondaryTextColor, fontSize: 16 }}>
+                No messages yet. Start the conversation!
+              </Text>
+            </View>
+          ) : (
+            messages.map((msg: Message) => {
+              const isUser = msg.sender_id === user?.id;
+              return (
+                <View
+                  key={msg.id}
+                  style={{
+                    marginBottom: 16,
+                    alignItems: isUser ? 'flex-end' : 'flex-start',
                   }}
                 >
-                  {formatTime(msg.timestamp)}
-                </Text>
-              </View>
-            </View>
-          ))}
+                  <View
+                    style={{
+                      maxWidth: '75%',
+                      backgroundColor: isUser ? '#EC4899' : colors.cardBackground,
+                      borderRadius: 16,
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderTopLeftRadius: isUser ? 16 : 4,
+                      borderTopRightRadius: isUser ? 4 : 16,
+                    }}
+                  >
+                    <Text style={{ color: isUser ? '#FFFFFF' : colors.textColor, fontSize: 14, lineHeight: 20 }}>
+                      {msg.content}
+                    </Text>
+                    <Text
+                      style={{ 
+                        color: isUser ? 'rgba(255, 255, 255, 0.8)' : colors.secondaryTextColor,
+                        fontSize: 12,
+                        marginTop: 4,
+                        textAlign: 'right'
+                      }}
+                    >
+                      {formatTime(msg.created_at)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
         </ScrollView>
 
         {/* Message Input */}
@@ -392,22 +438,26 @@ export default function ChatScreen() {
             {/* Send Button */}
             <Pressable
               onPress={handleSend}
-              disabled={!message.trim()}
+              disabled={!message.trim() || sending}
               style={{
                 width: 48,
                 height: 48,
                 borderRadius: 24,
-                backgroundColor: message.trim() ? '#EC4899' : colors.cardBackground,
+                backgroundColor: message.trim() && !sending ? '#EC4899' : colors.cardBackground,
                 justifyContent: 'center',
                 alignItems: 'center',
-                opacity: !message.trim() ? 0.5 : 1,
+                opacity: !message.trim() || sending ? 0.5 : 1,
               }}
             >
-              <Ionicons
-                name="send"
-                size={20}
-                color={message.trim() ? '#FFFFFF' : colors.secondaryTextColor}
-              />
+              {sending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons
+                  name="send"
+                  size={20}
+                  color={message.trim() ? '#FFFFFF' : colors.secondaryTextColor}
+                />
+              )}
             </Pressable>
           </View>
         </View>
@@ -485,7 +535,7 @@ export default function ChatScreen() {
                   <Pressable
                     onPress={() => {
                       setShowMenu(false);
-                      router.push('/seller-profile');
+                      router.push(`/seller-profile?id=${chat.seller_id}`);
                     }}
                     style={({ pressed }) => ({
                       paddingVertical: 10,
@@ -525,8 +575,11 @@ export default function ChatScreen() {
                   <Pressable
                     onPress={() => {
                       setShowMenu(false);
-                      router.push(`/buy-item?id=${conversationId}`);
+                      if (product) {
+                        router.push(`/buy-item?id=${product.id}`);
+                      }
                     }}
+                    disabled={!product}
                     style={({ pressed }) => ({
                       paddingVertical: 10,
                       paddingHorizontal: 8,
@@ -557,7 +610,7 @@ export default function ChatScreen() {
                       setShowMenu(false);
                       Alert.alert(
                         'Block User',
-                        `Are you sure you want to block ${conversation.sellerName}?`,
+                        `Are you sure you want to block ${sellerName}?`,
                         [
                           { text: 'Cancel', style: 'cancel' },
                           {
@@ -588,7 +641,7 @@ export default function ChatScreen() {
                       setShowMenu(false);
                       Alert.alert(
                         'Report User',
-                        `Report ${conversation.sellerName} for inappropriate behavior?`,
+                        `Report ${sellerName} for inappropriate behavior?`,
                         [
                           { text: 'Cancel', style: 'cancel' },
                           {
