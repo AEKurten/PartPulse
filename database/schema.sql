@@ -270,6 +270,9 @@ CREATE POLICY "Users can view their own chats" ON chats
 CREATE POLICY "Users can create chats" ON chats
   FOR INSERT WITH CHECK (auth.uid() = buyer_id OR auth.uid() = seller_id);
 
+CREATE POLICY "Users can update their own chats" ON chats
+  FOR UPDATE USING (buyer_id = auth.uid() OR seller_id = auth.uid());
+
 -- Messages policies
 CREATE POLICY "Users can view messages in their chats" ON messages
   FOR SELECT USING (
@@ -292,6 +295,16 @@ CREATE POLICY "Users can send messages in their chats" ON messages
 
 CREATE POLICY "Users can update their own messages" ON messages
   FOR UPDATE USING (auth.uid() = sender_id);
+
+CREATE POLICY "Users can mark messages as read in their chats" ON messages
+  FOR UPDATE USING (
+    auth.uid() != sender_id AND
+    EXISTS (
+      SELECT 1 FROM chats
+      WHERE chats.id = messages.chat_id
+      AND (chats.buyer_id = auth.uid() OR chats.seller_id = auth.uid())
+    )
+  );
 
 -- Reviews policies
 CREATE POLICY "Anyone can view reviews" ON reviews
