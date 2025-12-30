@@ -256,15 +256,88 @@ export default function BuyItemScreen() {
     }
   };
 
-  const handleContactSeller = () => {
+  const handleContactSeller = async () => {
     // Navigate to chat with seller
-    router.push({
-      pathname: "/chat",
-      params: {
-        sellerId: product.seller_id,
-        productId: product.id,
-      },
-    });
+    if (!product) return;
+
+    const userId = useAuthStore.getState().user?.id;
+    if (!userId) {
+      Alert.alert("Login Required", "Please log in to contact the seller");
+      return;
+    }
+
+    // Check if user is trying to message themselves
+    if (userId === product.seller_id) {
+      Alert.alert("Error", "You cannot message yourself");
+      return;
+    }
+
+    try {
+      // Check if chat already exists
+      const { data: existingChat, error: findError } = await supabase
+        .from("chats")
+        .select("id")
+        .eq("buyer_id", userId)
+        .eq("seller_id", product.seller_id)
+        .eq("product_id", product.id)
+        .single();
+
+      let chatId: string;
+
+      if (existingChat && !findError) {
+        // Chat exists, use its ID
+        chatId = existingChat.id;
+      } else {
+        // Chat doesn't exist (or error finding it), create a new chat
+        const { data: newChat, error: chatError } = await supabase
+          .from("chats")
+          .insert({
+            buyer_id: userId,
+            seller_id: product.seller_id,
+            product_id: product.id,
+          })
+          .select("id")
+          .single();
+
+        if (chatError) {
+          // If error is a unique constraint violation, try to find the chat again (race condition)
+          if (chatError.code === "23505") {
+            const { data: raceConditionChat } = await supabase
+              .from("chats")
+              .select("id")
+              .eq("buyer_id", userId)
+              .eq("seller_id", product.seller_id)
+              .eq("product_id", product.id)
+              .single();
+
+            if (raceConditionChat) {
+              chatId = raceConditionChat.id;
+            } else {
+              console.error("Error creating chat:", chatError);
+              Alert.alert("Error", "Failed to create chat");
+              return;
+            }
+          } else {
+            console.error("Error creating chat:", chatError);
+            Alert.alert("Error", "Failed to create chat");
+            return;
+          }
+        } else {
+          chatId = newChat.id;
+        }
+      }
+
+      // Navigate to chat with the chat ID
+      router.push({
+        pathname: "/chat",
+        params: {
+          id: chatId,
+        },
+      });
+    } catch (error) {
+      console.error("Error in handleContactSeller:", error);
+      Alert.alert("Error", "Failed to open chat");
+    }
   };
 
   const handleBuyNow = () => {
