@@ -404,6 +404,12 @@ export default function BuyItemScreen() {
       return;
     }
 
+    //check if the user is trying to message themselves
+    if (userId === product?.seller_id) {
+      Alert.alert("Error", "You cannot message yourself");
+      return;
+    }
+
     //create a new chat if it doesn't exist
     const { data: chat, error: chatError } = await supabase
       .from("chats")
@@ -436,6 +442,16 @@ export default function BuyItemScreen() {
         last_message_at: new Date().toISOString(),
       })
       .eq("id", chat.id);
+
+    //naivate to the chat
+    router.push({
+      pathname: "/chat",
+      params: {
+        sellerId: product?.seller_id,
+        productId: product?.id,
+      },
+    });
+
     if (lastMessageError) {
       console.error("Error updating chat:", lastMessageError);
       Alert.alert("Error", "Failed to update chat");

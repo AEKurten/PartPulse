@@ -1,27 +1,36 @@
-import SubscriptionPaywall from '@/app/subscription-paywall';
-import { AdBanner } from '@/components/ad-banner';
-import { ProductCard } from '@/components/product-card';
-import { SearchBar } from '@/components/search-bar';
-import { SectionHeader } from '@/components/section-header';
-import { TrendingProductCard } from '@/components/trending-product-card';
-import { TextSizes, PaddingSizes, getPadding } from '@/constants/platform-styles';
-import { useThemeColors } from '@/hooks/use-theme-colors';
-import { getTrendingProducts } from '@/lib/analytics';
-import { getProducts } from '@/lib/database';
-import { supabase } from '@/lib/supabase';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import SubscriptionPaywall from "@/app/subscription-paywall";
+import { AdBanner } from "@/components/ad-banner";
+import { ProductCard } from "@/components/product-card";
+import { SearchBar } from "@/components/search-bar";
+import { SectionHeader } from "@/components/section-header";
+import { TrendingProductCard } from "@/components/trending-product-card";
+import {
+  PaddingSizes,
+  TextSizes,
+  getPadding,
+} from "@/constants/platform-styles";
+import { useThemeColors } from "@/hooks/use-theme-colors";
+import { getProducts } from "@/lib/database";
+import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withTiming
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useUserData } from '../Helpers/UserDetailsHelper';
-import { useAuthStore } from '../stores/useAuthStore';
+  withTiming,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useUserData } from "../Helpers/UserDetailsHelper";
+import { useAuthStore } from "../stores/useAuthStore";
 
 interface RecommendedProduct {
   id: string;
@@ -46,13 +55,22 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+  const greeting =
+    currentHour < 12
+      ? "Good morning"
+      : currentHour < 18
+      ? "Good afternoon"
+      : "Good evening";
   const { user } = useAuthStore();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [recommendedProducts, setRecommendedProducts] = useState<RecommendedProduct[]>([]);
-  const [trendingProducts, setTrendingProducts] = useState<TrendingProduct[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<
+    RecommendedProduct[]
+  >([]);
+  const [trendingProducts, setTrendingProducts] = useState<TrendingProduct[]>(
+    []
+  );
   const [loadingRecommended, setLoadingRecommended] = useState(true);
   const [loadingTrending, setLoadingTrending] = useState(true);
   const [wishlistMap, setWishlistMap] = useState<Record<string, boolean>>({});
@@ -80,7 +98,7 @@ export default function HomeScreen() {
     marginLeft: buttonsMargin.value,
   }));
 
-  const USERNAME = useUserData()?.name || 'User';
+  const USERNAME = useUserData()?.name || "User";
 
   // Fetch recommended products
   useEffect(() => {
@@ -88,33 +106,36 @@ export default function HomeScreen() {
       try {
         setLoadingRecommended(true);
         const products = await getProducts({
-          status: 'active',
+          status: "active",
           limit: 4,
         });
 
         const recommended = products.map((product) => {
           // Get price from database - ensure we're using the actual price value
           let priceValue: number;
-          if (typeof product.price === 'number') {
+          if (typeof product.price === "number") {
             priceValue = product.price;
           } else if (product.price) {
             priceValue = parseFloat(product.price.toString()) || 0;
           } else {
             priceValue = 0;
           }
-          
+
           return {
             id: product.id,
             name: product.name,
-            price: priceValue > 0 ? priceValue.toFixed(2) : '0.00', // Just the number, ProductCard adds "R " prefix
-            condition: product.condition || 'N/A',
-            image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '',
+            price: priceValue > 0 ? priceValue.toFixed(2) : "0.00", // Just the number, ProductCard adds "R " prefix
+            condition: product.condition || "N/A",
+            image:
+              Array.isArray(product.images) && product.images.length > 0
+                ? product.images[0]
+                : "",
           };
         });
 
         setRecommendedProducts(recommended);
       } catch (error) {
-        console.error('Error fetching recommended products:', error);
+        console.error("Error fetching recommended products:", error);
         setRecommendedProducts([]);
       } finally {
         setLoadingRecommended(false);
@@ -129,31 +150,32 @@ export default function HomeScreen() {
     const fetchTrending = async () => {
       try {
         setLoadingTrending(true);
-        
+
         // Get view counts grouped by product_id
         const { data: viewCounts, error: viewsError } = await supabase
-          .from('product_views')
-          .select('product_id');
+          .from("product_views")
+          .select("product_id");
 
         if (viewsError) {
-          console.error('Error fetching view counts:', viewsError);
+          console.error("Error fetching view counts:", viewsError);
         }
 
         // Count views per product
         const viewCountMap: Record<string, number> = {};
         viewCounts?.forEach((view: any) => {
-          viewCountMap[view.product_id] = (viewCountMap[view.product_id] || 0) + 1;
+          viewCountMap[view.product_id] =
+            (viewCountMap[view.product_id] || 0) + 1;
         });
 
         // Get all active products
         const { data: allProducts, error: productsError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('status', 'active')
+          .from("products")
+          .select("*")
+          .eq("status", "active")
           .limit(100);
 
         if (productsError) {
-          console.error('Error fetching products:', productsError);
+          console.error("Error fetching products:", productsError);
           setTrendingProducts([]);
           return;
         }
@@ -170,35 +192,38 @@ export default function HomeScreen() {
         // Fetch seller names for trending products
         const trendingWithSellers = await Promise.all(
           sorted.map(async (product: any) => {
-            let sellerName = 'Unknown Seller';
+            let sellerName = "Unknown Seller";
             if (product.seller_id) {
               const { data: seller } = await supabase
-                .from('profiles')
-                .select('username, full_name')
-                .eq('id', product.seller_id)
+                .from("profiles")
+                .select("username")
+                .eq("id", product.seller_id)
                 .single();
-              
+
               if (seller) {
-                sellerName = seller.full_name || seller.username || 'Unknown Seller';
+                sellerName = seller.username || "Unknown Seller";
               }
             }
 
             // Format price - ensure we use the actual database price
             let priceValue: number;
-            if (typeof product.price === 'number') {
+            if (typeof product.price === "number") {
               priceValue = product.price;
             } else if (product.price) {
               priceValue = parseFloat(product.price.toString()) || 0;
             } else {
               priceValue = 0;
             }
-            
+
             return {
               id: product.id,
               name: product.name,
-              price: priceValue > 0 ? `R ${priceValue.toFixed(2)}` : 'R 0.00', // Format with R prefix for TrendingProductCard
-              condition: product.condition || 'N/A',
-              image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '',
+              price: priceValue > 0 ? `R ${priceValue.toFixed(2)}` : "R 0.00", // Format with R prefix for TrendingProductCard
+              condition: product.condition || "N/A",
+              image:
+                Array.isArray(product.images) && product.images.length > 0
+                  ? product.images[0]
+                  : "",
               rating: 4.5, // Default rating, can be enhanced later
               sellerName: sellerName,
               aiCertified: false, // Can be enhanced later
@@ -208,7 +233,7 @@ export default function HomeScreen() {
 
         setTrendingProducts(trendingWithSellers);
       } catch (error) {
-        console.error('Error fetching trending products:', error);
+        console.error("Error fetching trending products:", error);
         setTrendingProducts([]);
       } finally {
         setLoadingTrending(false);
@@ -228,12 +253,12 @@ export default function HomeScreen() {
 
       try {
         const { data, error } = await supabase
-          .from('wishlist')
-          .select('product_id')
-          .eq('user_id', user.id);
+          .from("wishlist")
+          .select("product_id")
+          .eq("user_id", user.id);
 
         if (error) {
-          console.error('Error fetching wishlist:', error);
+          console.error("Error fetching wishlist:", error);
           return;
         }
 
@@ -243,42 +268,43 @@ export default function HomeScreen() {
         });
         setWishlistMap(map);
       } catch (error) {
-        console.error('Error fetching wishlist:', error);
+        console.error("Error fetching wishlist:", error);
       }
     };
 
     fetchWishlist();
   }, [user?.id]);
 
-  const handleWishlistPress = async (productId: string, shouldBeWishlisted: boolean) => {
+  const handleWishlistPress = async (
+    productId: string,
+    shouldBeWishlisted: boolean
+  ) => {
     if (!user?.id) {
       return;
     }
 
     try {
       if (shouldBeWishlisted) {
-        const { error } = await supabase
-          .from('wishlist')
-          .insert({
-            user_id: user.id,
-            product_id: productId,
-          });
+        const { error } = await supabase.from("wishlist").insert({
+          user_id: user.id,
+          product_id: productId,
+        });
 
-        if (error && error.code !== '23505') {
-          console.error('Error adding to wishlist:', error);
+        if (error && error.code !== "23505") {
+          console.error("Error adding to wishlist:", error);
           return;
         }
 
         setWishlistMap((prev) => ({ ...prev, [productId]: true }));
       } else {
         const { error } = await supabase
-          .from('wishlist')
+          .from("wishlist")
           .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', productId);
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
 
         if (error) {
-          console.error('Error removing from wishlist:', error);
+          console.error("Error removing from wishlist:", error);
           return;
         }
 
@@ -289,7 +315,7 @@ export default function HomeScreen() {
         });
       }
     } catch (error) {
-      console.error('Error updating wishlist:', error);
+      console.error("Error updating wishlist:", error);
     }
   };
 
@@ -312,68 +338,92 @@ export default function HomeScreen() {
         }}
       >
         {/* Welcome Message with Chats Button */}
-        <View style={{ paddingTop: PaddingSizes.lg, marginBottom: getPadding(32) }}>
+        <View
+          style={{ paddingTop: PaddingSizes.lg, marginBottom: getPadding(32) }}
+        >
           <View
             style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
             }}
           >
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: PaddingSizes.sm }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: PaddingSizes.sm,
+                }}
+              >
                 <View
                   style={{
                     width: 48,
                     height: 48,
                     borderRadius: 24,
-                    backgroundColor: '#EC4899' + '20',
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                    backgroundColor: "#EC4899" + "20",
+                    justifyContent: "center",
+                    alignItems: "center",
                     marginRight: PaddingSizes.base,
                   }}
                 >
                   <Ionicons name="home" size={24} color="#EC4899" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.textColor, fontSize: TextSizes['2xl'], fontWeight: 'bold', marginBottom: PaddingSizes.xs }}>
+                  <Text
+                    style={{
+                      color: colors.textColor,
+                      fontSize: TextSizes["2xl"],
+                      fontWeight: "bold",
+                      marginBottom: PaddingSizes.xs,
+                    }}
+                  >
                     {greeting}, {USERNAME}
                   </Text>
-                  <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
+                  <Text
+                    style={{
+                      color: colors.secondaryTextColor,
+                      fontSize: TextSizes.sm,
+                    }}
+                  >
                     Welcome back to PartPulse
                   </Text>
                 </View>
               </View>
             </View>
             <Pressable
-              onPress={() => router.push('/chats')}
+              onPress={() => router.push("/chats")}
               style={{
                 backgroundColor: colors.cardBackground,
                 borderRadius: 16,
                 width: 56,
                 height: 56,
-                justifyContent: 'center',
-                alignItems: 'center',
+                justifyContent: "center",
+                alignItems: "center",
                 borderWidth: 1,
                 borderColor: colors.borderColor,
               }}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.textColor} />
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={24}
+                color={colors.textColor}
+              />
             </Pressable>
           </View>
         </View>
 
         {/* Search Bar with Quick Access Buttons */}
         <View style={{ marginBottom: getPadding(32) }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <View style={{ flex: 1 }}>
-              <SearchBar 
+              <SearchBar
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
                 onSubmit={(query) => {
                   router.push({
-                    pathname: '/(tabs)/market',
-                    params: { search: query }
+                    pathname: "/(tabs)/market",
+                    params: { search: query },
                   });
                 }}
               />
@@ -382,17 +432,17 @@ export default function HomeScreen() {
             {/* Wishlist Button */}
             <Animated.View style={buttonsAnimatedStyle}>
               <Pressable
-                onPress={() => router.push('/(tabs)/wishlist')}
+                onPress={() => router.push("/(tabs)/wishlist")}
                 style={{
                   width: 56,
                   height: 56,
                   borderRadius: 28,
                   backgroundColor: colors.cardBackground,
-                  justifyContent: 'center',
-                  alignItems: 'center',
+                  justifyContent: "center",
+                  alignItems: "center",
                   borderWidth: 1,
-                  borderColor: '#EC4899' + '30',
-                  overflow: 'hidden',
+                  borderColor: "#EC4899" + "30",
+                  overflow: "hidden",
                 }}
               >
                 <Ionicons name="heart-outline" size={24} color="#EC4899" />
@@ -402,31 +452,35 @@ export default function HomeScreen() {
             {/* Notifications Button */}
             <Animated.View style={buttonsAnimatedStyle}>
               <Pressable
-                onPress={() => router.push('/(tabs)/notifications')}
+                onPress={() => router.push("/(tabs)/notifications")}
                 style={{
                   width: 56,
                   height: 56,
                   borderRadius: 28,
                   backgroundColor: colors.cardBackground,
-                  justifyContent: 'center',
-                  alignItems: 'center',
+                  justifyContent: "center",
+                  alignItems: "center",
                   borderWidth: 1,
-                  borderColor: '#3B82F6' + '30',
-                  position: 'relative',
-                  overflow: 'hidden',
+                  borderColor: "#3B82F6" + "30",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
-                <Ionicons name="notifications-outline" size={24} color="#3B82F6" />
+                <Ionicons
+                  name="notifications-outline"
+                  size={24}
+                  color="#3B82F6"
+                />
                 {/* Unread indicator */}
                 <View
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     top: PaddingSizes.sm,
                     right: PaddingSizes.sm,
                     width: 10,
                     height: 10,
                     borderRadius: 5,
-                    backgroundColor: '#EC4899',
+                    backgroundColor: "#EC4899",
                     borderWidth: 2,
                     borderColor: colors.cardBackground,
                   }}
@@ -440,10 +494,16 @@ export default function HomeScreen() {
         <View style={{ marginBottom: getPadding(32) }}>
           <SectionHeader
             title="Recommended for You"
-            onShowAllPress={() => router.push('/(tabs)/market')}
+            onShowAllPress={() => router.push("/(tabs)/market")}
           />
           {loadingRecommended ? (
-            <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}>
+            <View
+              style={{
+                height: 200,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <ActivityIndicator size="large" color="#EC4899" />
             </View>
           ) : recommendedProducts.length > 0 ? (
@@ -462,18 +522,25 @@ export default function HomeScreen() {
                     image={product.image}
                     isWishlisted={wishlistMap[product.id] || false}
                     onWishlistPress={handleWishlistPress}
-                    onPress={() => router.push({
-                      pathname: '/buy-item',
-                      params: { productId: product.id }
-                    })}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/buy-item",
+                        params: { productId: product.id },
+                      })
+                    }
                     source="home_recommended"
                   />
                 </View>
               ))}
             </ScrollView>
           ) : (
-            <View style={{ padding: PaddingSizes.lg, alignItems: 'center' }}>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
+            <View style={{ padding: PaddingSizes.lg, alignItems: "center" }}>
+              <Text
+                style={{
+                  color: colors.secondaryTextColor,
+                  fontSize: TextSizes.sm,
+                }}
+              >
                 No products available
               </Text>
             </View>
@@ -484,16 +551,25 @@ export default function HomeScreen() {
         <View>
           <SectionHeader
             title="Trending Products"
-            onShowAllPress={() => router.push('/(tabs)/market')}
+            onShowAllPress={() => router.push("/(tabs)/market")}
           />
           {loadingTrending ? (
-            <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}>
+            <View
+              style={{
+                height: 200,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <ActivityIndicator size="large" color="#EC4899" />
             </View>
           ) : trendingProducts.length > 0 ? (
             <View>
               {trendingProducts.map((product, index) => (
-                <View key={product.id} style={{ marginBottom: PaddingSizes.md }}>
+                <View
+                  key={product.id}
+                  style={{ marginBottom: PaddingSizes.md }}
+                >
                   <TrendingProductCard
                     id={index + 1}
                     name={product.name}
@@ -503,17 +579,24 @@ export default function HomeScreen() {
                     rating={product.rating}
                     sellerName={product.sellerName}
                     aiCertified={product.aiCertified}
-                    href={{
-                      pathname: '/buy-item',
-                      params: { productId: product.id }
-                    } as any}
+                    href={
+                      {
+                        pathname: "/buy-item",
+                        params: { productId: product.id },
+                      } as any
+                    }
                   />
                 </View>
               ))}
             </View>
           ) : (
-            <View style={{ padding: PaddingSizes.lg, alignItems: 'center' }}>
-              <Text style={{ color: colors.secondaryTextColor, fontSize: TextSizes.sm }}>
+            <View style={{ padding: PaddingSizes.lg, alignItems: "center" }}>
+              <Text
+                style={{
+                  color: colors.secondaryTextColor,
+                  fontSize: TextSizes.sm,
+                }}
+              >
                 No trending products available
               </Text>
             </View>
@@ -521,7 +604,9 @@ export default function HomeScreen() {
         </View>
 
         {/* Ad Banner */}
-        <View style={{ marginTop: getPadding(32), marginBottom: PaddingSizes.md }}>
+        <View
+          style={{ marginTop: getPadding(32), marginBottom: PaddingSizes.md }}
+        >
           <AdBanner onUpgradePress={() => setShowPaywall(true)} />
         </View>
       </ScrollView>
